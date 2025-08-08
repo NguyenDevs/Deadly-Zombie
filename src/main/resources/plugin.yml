@@ -1,0 +1,17 @@
+name: DeadlyZombie
+version: 1.0
+main: com.NguyenDevs.deadlyZombie.DeadlyZombie
+api-version: 1.19
+depend: [WorldGuard, ProtocolLib]
+
+commands:
+  deadlyzombie:
+    description: Main command for DeadlyZombie
+    usage: /<command> reload
+    permission: zd.admin
+    aliases: [dz]
+
+permissions:
+  zd.admin:
+    description: Full access to DeadlyZombie admin commands
+    default: op
