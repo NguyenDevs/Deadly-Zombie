@@ -2,7 +2,7 @@ Tired of slow, easy-to-kill Zombies? Try Deadly Zombie!. Make the zombies in you
 
 ![image](https://github.com/user-attachments/assets/9b628bd9-f92e-4d21-bf58-3f8039309d89)
 
-**Features**
+## Features
 - **Armor Piercing**: Bypass armor and deal direct damage to the player's health.
 - **Zombie Block Breaking**: Zombies holding tools can break matching block types.
 - **Rage Mode**: Temporary buffs when enraged (speed, damage...) 
