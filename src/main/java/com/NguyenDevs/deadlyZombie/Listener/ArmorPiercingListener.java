@@ -1,6 +1,7 @@
 package com.NguyenDevs.deadlyZombie.Listener;
 
 import com.NguyenDevs.deadlyZombie.Manager.ConfigManager;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
@@ -36,15 +37,12 @@ public class ArmorPiercingListener implements Listener {
         double chance = config.getDouble("chance", 0.0) / 100.0;
         if (RANDOM.nextDouble() > chance) return;
 
-        double rawDamage = event.getDamage();
-        double armorReduction = player.getAttribute(org.bukkit.attribute.Attribute.GENERIC_ARMOR).getValue();
-        double toughness = player.getAttribute(org.bukkit.attribute.Attribute.GENERIC_ARMOR_TOUGHNESS).getValue();
+        double damage = event.getDamage();
 
-        double damageAfterArmor = rawDamage * (1 - Math.min(20.0, Math.max(armorReduction / 5.0, armorReduction - rawDamage / (2.0 + toughness / 4.0))) / 25.0);
+        event.setCancelled(true);
+        player.damage(damage, mob);
 
-        event.setDamage(damageAfterArmor);
-        player.getWorld().spawnParticle(org.bukkit.Particle.DAMAGE_INDICATOR, player.getLocation().add(0, 1, 0), 10, 0.3, 0.5, 0.3, 0.1);
+        player.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR, player.getLocation().add(0, 1, 0), 10, 0.3, 0.5, 0.3, 0.1);
         player.playSound(player.getLocation(), Sound.ENTITY_ITEM_BREAK, 1.0f, 0.8f);
-
     }
 }
