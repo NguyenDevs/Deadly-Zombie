@@ -37,6 +37,7 @@ public final class DeadlyZombie extends JavaPlugin {
 
         // Register event listeners
 
+        getServer().getPluginManager().registerEvents(new ArmorPiercingListener(configManager), this);
         getServer().getPluginManager().registerEvents(new TankyMonsterListener(configManager), this);
         getServer().getPluginManager().registerEvents(new ParasiteSummonListener(configManager), this);
         getServer().getPluginManager().registerEvents(new MobCriticalStrikeListener(configManager), this);
