@@ -26,6 +26,10 @@ mob-critical-strikes:
     ZOMBIE: 35.0            # Chance for ZOMBIE to land a critical hit (%) - You can add more mob below this line
     #PIGLIN: 50.0
 
+armor-piercing:
+  enabled: true
+  chance: 10
+
 disable-worlds:
   - example
   - example_nether
