@@ -4,13 +4,13 @@
 
 armor:
   none:
-    probability: 0.94        # 94% zombie no armor
+    probability: 0.85        # 85% zombie no armor
     drop-chance: 0.0
     pieces: [ ]
 
   leather:
     probability: 0.04        # 4% for leather armor
-    drop-chance: 0.05
+    drop-chance: 0.1
     pieces:
       - LEATHER_HELMET
       - LEATHER_CHESTPLATE
@@ -18,8 +18,8 @@ armor:
       - LEATHER_BOOTS
 
   iron:
-    probability: 0.009       # 0.9% for iron armor
-    drop-chance: 0.03
+    probability: 0.01       # 1% for iron armor
+    drop-chance: 0.1
     pieces:
       - IRON_HELMET
       - IRON_CHESTPLATE
@@ -27,8 +27,8 @@ armor:
       - IRON_BOOTS
 
   gold:
-    probability: 0.005       # 0.5% for gold armor
-    drop-chance: 0.03
+    probability: 0.01       # 0.1% for gold armor
+    drop-chance: 0.1
     pieces:
       - GOLDEN_HELMET
       - GOLDEN_CHESTPLATE
@@ -36,8 +36,8 @@ armor:
       - GOLDEN_BOOTS
 
   diamond:
-    probability: 0.0009      # 0.09% for diamond armor
-    drop-chance: 0.01
+    probability: 0.005      # 0.05% for diamond armor
+    drop-chance: 0.05
     pieces:
       - DIAMOND_HELMET
       - DIAMOND_CHESTPLATE
@@ -45,7 +45,7 @@ armor:
       - DIAMOND_BOOTS
 
   netherite:
-    probability: 0.0001      # 0.01% for netherite armor
+    probability: 0.001      # 0.01% for netherite armor
     drop-chance: 0.01
     pieces:
       - NETHERITE_HELMET

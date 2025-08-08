@@ -37,6 +37,6 @@ disable-worlds:
 # the final probability becomes 1.005
 
 difficulty-coef:
-  - EASY: 0.0      # No bonus applied to probabilities
-  - NORMAL: 0.5    # +0.5 added to each probability
-  - HARD: 1.0      # +1.0 added to each probability (hardest mode = highest gear spawn rate)
+  EASY: 0.0       # No bonus applied to probabilities
+  NORMAL: 10.0    # +10% added to each probability
+  HARD: 20.0      # +20% added to each probability (hardest mode = highest gear spawn rate)
