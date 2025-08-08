@@ -14,7 +14,8 @@ Tired of slow, easy-to-kill Zombies? Try Deadly Zombie!. Make the zombies in you
 - Cool particle & sound effects for every ability
 - **WorldGuard** flags
 
-![image](https://github.com/user-attachments/assets/1fcdbad5-5c56-4335-96bd-d958248dc608)
+![image](https://github.com/user-attachments/assets/31b13b0c-d8e2-4634-813e-280ae6d081d7)
 
+## Commands
 - `/dz reload` reloads the configuration file
 - `zd.admin` allow to use admin commands.
