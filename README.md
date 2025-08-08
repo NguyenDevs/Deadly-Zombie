@@ -11,7 +11,7 @@ Tired of slow, easy-to-kill Zombies? Try Deadly Zombie!. Make the zombies in you
 - **Critical Strikes**: Can deal critical hits to players.
 - **Configurable** chance for zombies to spawn with weapons, armor, and enchantments.
   
-**Extra features**
+## Extra features
 - Cool particle & sound effects for every ability
 - **WorldGuard** flags
 
@@ -19,4 +19,5 @@ Tired of slow, easy-to-kill Zombies? Try Deadly Zombie!. Make the zombies in you
 
 ## Commands
 - `/dz reload` reloads the configuration file
+## Permissions
 - `zd.admin` allow to use admin commands.
