@@ -1,0 +1,42 @@
+zombie-break-block:
+  enabled: true             # Toggle zombie block-breaking behavior
+
+zombie-rage:
+  enabled: true
+  rage-duration: 10.0       # Duration of rage effects (in seconds)
+  damage-level: 1           # Strength potion level applied during rage
+  speed-level: 2            # Speed potion level applied during rage
+
+tanky-monsters:
+  enabled: true
+  dmg-reduction-percent:
+    ZOMBIE: 30.0            # Reduces damage taken by 30% - You can add more mob below this line
+    #PIGLIN: 50.0
+
+parasite-summon:
+  enabled: true
+  chance-percent: 35.0      # Chance to summon silverfish when zombie died.
+  min: 1                    # Minimum number of silverfish spawned
+  max: 3                    # Maximum number of silverfish spawned
+
+mob-critical-strikes:
+  enabled: true
+  damage-percent: 50.0      # Extra damage added on critical hit (%)
+  crit-chance:
+    ZOMBIE: 35.0            # Chance for ZOMBIE to land a critical hit (%) - You can add more mob below this line
+    #PIGLIN: 50.0
+
+disable-worlds:
+  - example
+  - example_nether
+  - example_the_end
+
+# This section controls how much to increase the probability of equipping tools or armor
+# based on the current game difficulty. Values are added to each base probability.
+# Example: If diamond_sword has a base probability of 0.005 and difficulty is HARD (1.0),
+# the final probability becomes 1.005
+
+difficulty-coef:
+  - EASY: 0.0      # No bonus applied to probabilities
+  - NORMAL: 0.5    # +0.5 added to each probability
+  - HARD: 1.0      # +1.0 added to each probability (hardest mode = highest gear spawn rate)
