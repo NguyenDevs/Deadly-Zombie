@@ -28,7 +28,7 @@ mob-critical-strikes:
 
 armor-piercing:
   enabled: true
-  chance: 10
+  chance: 10                # Chance that Zombies will ignore armor, toughness armor, enchant, effect and attack directly to health.
 
 disable-worlds:
   - example
