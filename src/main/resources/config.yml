@@ -1,3 +1,5 @@
+update-notify: true
+
 zombie-break-block:
   enabled: true             # Toggle zombie block-breaking behavior
 
