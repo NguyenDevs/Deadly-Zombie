@@ -7,6 +7,7 @@ import com.NguyenDevs.deadlyZombie.Comp.worldguard.WorldGuardOff;
 import com.NguyenDevs.deadlyZombie.Comp.worldguard.WorldGuardOn;
 import com.NguyenDevs.deadlyZombie.Listener.*;
 import com.NguyenDevs.deadlyZombie.Manager.ConfigManager;
+import com.NguyenDevs.deadlyZombie.Utils.UpdateChecker;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.protection.flags.StateFlag;
 import com.sk89q.worldguard.protection.flags.registry.FlagConflictException;
@@ -36,12 +37,10 @@ public final class DeadlyZombie extends JavaPlugin {
         initializeWorldGuard();
 
         // Register event listeners
-
         getServer().getPluginManager().registerEvents(new ArmorPiercingListener(configManager), this);
         getServer().getPluginManager().registerEvents(new TankyMonsterListener(configManager), this);
         getServer().getPluginManager().registerEvents(new ParasiteSummonListener(configManager), this);
         getServer().getPluginManager().registerEvents(new MobCriticalStrikeListener(configManager), this);
-
         getServer().getPluginManager().registerEvents(new ZombieRageListener(configManager, this), this);
         getServer().getPluginManager().registerEvents(new ZombieEquipmentHandler(configManager, this), this);
         getServer().getPluginManager().registerEvents(new ZombieBreakBlockListener(configManager, this), this);
@@ -49,6 +48,10 @@ public final class DeadlyZombie extends JavaPlugin {
         // Register command
         getCommand("deadlyzombie").setExecutor(new ReloadCommand(configManager));
         getCommand("deadlyzombie").setTabCompleter(new DeadlyZombieTabCompleter());
+
+        // Check for updates
+        UpdateChecker updateChecker = new UpdateChecker(127800, this);
+        updateChecker.checkForUpdate();
 
         printLogo();
         Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&', "&8[&aDeadly&2Zombie&8] &aDeadlyZombie plugin enabled successfully!"));
@@ -69,7 +72,7 @@ public final class DeadlyZombie extends JavaPlugin {
             // Register zd-break flag
             String breakFlagPath = "zd-break";
             if (registry.get(breakFlagPath) == null) {
-                StateFlag breakFlag = new StateFlag(breakFlagPath, true); // Default to ALLOW
+                StateFlag breakFlag = new StateFlag(breakFlagPath, true);
                 registry.register(breakFlag);
                 getLogger().info("Registered WorldGuard flag: " + breakFlagPath);
             }
@@ -77,7 +80,7 @@ public final class DeadlyZombie extends JavaPlugin {
             // Register zd-rage flag
             String rageFlagPath = "zd-rage";
             if (registry.get(rageFlagPath) == null) {
-                StateFlag rageFlag = new StateFlag(rageFlagPath, true); // Default to ALLOW
+                StateFlag rageFlag = new StateFlag(rageFlagPath, true);
                 registry.register(rageFlag);
                 getLogger().info("Registered WorldGuard flag: " + rageFlagPath);
             }
