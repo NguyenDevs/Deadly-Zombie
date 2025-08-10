@@ -133,7 +133,20 @@ public class ConfigManager {
 
         // Armor piercing
         config.addDefault("armor-piercing.enabled", true);
-        config.addDefault("armor-piercing.chance", 10);
+        config.addDefault("armor-piercing.chance", 15);
+        ConfigurationSection armorPiercingEffects = config.getConfigurationSection("armor-piercing.effects");
+        if (armorPiercingEffects == null) {
+            armorPiercingEffects = config.createSection("armor-piercing.effects");
+        }
+        armorPiercingEffects.addDefault("particles", true);
+        armorPiercingEffects.addDefault("sound", true);
+        config.setComments("armor-piercing", Arrays.asList(
+                "Armor piercing settings",
+                "chance: Percentage chance that zombies will ignore armor, toughness, enchantments, effects, and attack health directly",
+                "effects: Visual and sound effects when armor piercing occurs"
+        ));
+        config.setComments("armor-piercing.effects.particles", Arrays.asList("Enable particle effects when armor is pierced"));
+        config.setComments("armor-piercing.effects.sound", Arrays.asList("Enable sound effects when armor is pierced"));
 
         // Disable worlds
         config.addDefault("disable-worlds", Arrays.asList("example", "example_nether", "example_the_end"));
@@ -158,10 +171,19 @@ public class ConfigManager {
     }
 
     public void reloadConfigs() {
+        cleanup();
         plugin.reloadConfig();
         this.config = plugin.getConfig();
         setupDefaultConfig();
         loadConfigs();
+    }
+
+    public void cleanup() {
+        this.config = null;
+        this.toolsConfig = null;
+        this.enchantsConfig = null;
+        this.armorConfig = null;
+        this.blocksConfig = null;
     }
 
     public FileConfiguration getConfig() {
