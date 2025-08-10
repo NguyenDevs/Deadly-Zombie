@@ -59,6 +59,42 @@ public class ConfigManager {
     private void setupDefaultConfig() {
         config.addDefault("update-notify", true);
 
+        // Equipment settings
+        ConfigurationSection equipmentSection = config.getConfigurationSection("equipment");
+        if (equipmentSection == null) {
+            equipmentSection = config.createSection("equipment");
+        }
+        if (!equipmentSection.contains("enable")) {
+            equipmentSection.set("enable", true);
+        }
+        if (!equipmentSection.contains("zombie")) {
+            equipmentSection.set("zombie", true);
+        }
+        if (!equipmentSection.contains("drowned")) {
+            equipmentSection.set("drowned", true);
+        }
+        if (!equipmentSection.contains("husk")) {
+            equipmentSection.set("husk", true);
+        }
+        if (!equipmentSection.contains("zombified-piglin")) {
+            equipmentSection.set("zombified-piglin", true);
+        }
+        if (!equipmentSection.contains("zombie-villager")) {
+            equipmentSection.set("zombie-villager", false);
+        }
+
+        // Add comments for equipment section
+        config.setComments("equipment", Arrays.asList(
+                "Equipment settings for different zombie types",
+                "enable: Master switch for all zombie equipment",
+                "Individual switches for each zombie type:"
+        ));
+        config.setComments("equipment.zombie", Arrays.asList("Enable equipment for regular zombies"));
+        config.setComments("equipment.drowned", Arrays.asList("Enable equipment for drowned zombies"));
+        config.setComments("equipment.husk", Arrays.asList("Enable equipment for husk zombies"));
+        config.setComments("equipment.zombified-piglin", Arrays.asList("Enable equipment for zombified piglins"));
+        config.setComments("equipment.zombie-villager", Arrays.asList("Enable equipment for zombie villagers (disabled by default)"));
+
         // Zombie break block
         config.addDefault("zombie-break-block.enabled", true);
 
@@ -77,11 +113,6 @@ public class ConfigManager {
         if (!tankyMonsters.contains("ZOMBIE")) {
             tankyMonsters.set("ZOMBIE", 30.0);
         }
-        // Add PIGLIN as a commented example
-        if (!tankyMonsters.contains("PIGLIN")) {
-            tankyMonsters.set("PIGLIN", 50.0);
-            config.setComments("tanky-monsters.dmg-reduction-percent.PIGLIN", Arrays.asList("Example: Reduces damage taken by 50%"));
-        }
 
         // Parasite summon
         config.addDefault("parasite-summon.enabled", true);
@@ -98,11 +129,6 @@ public class ConfigManager {
         }
         if (!critChance.contains("ZOMBIE")) {
             critChance.set("ZOMBIE", 35.0);
-        }
-        // Add PIGLIN as a commented example
-        if (!critChance.contains("PIGLIN")) {
-            critChance.set("PIGLIN", 50.0);
-            config.setComments("mob-critical-strikes.crit-chance.PIGLIN", Arrays.asList("Example: Chance for PIGLIN to land a critical hit (%)"));
         }
 
         // Armor piercing
