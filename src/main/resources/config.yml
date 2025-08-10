@@ -1,5 +1,13 @@
 update-notify: true
 
+equipment:
+  enable: true
+  zombie: true
+  drowned: false
+  husk: false
+  zombified-piglin: false
+  zombie-villager: false
+
 zombie-break-block:
   enabled: true             # Toggle zombie block-breaking behavior
 
@@ -30,7 +38,10 @@ mob-critical-strikes:
 
 armor-piercing:
   enabled: true
-  chance: 10                # Chance that Zombies will ignore armor, toughness armor, enchant, effect and attack directly to health.
+  chance: 15                # Chance that Zombies will ignore armor, toughness armor, enchant, effect and attack directly to health.
+  effects:
+    particles: true
+    sound: true
 
 disable-worlds:
   - example
