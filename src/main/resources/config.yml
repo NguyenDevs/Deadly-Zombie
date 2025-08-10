@@ -2,7 +2,7 @@ update-notify: true
 
 equipment:
   enable: true
-  zombie: true
+  zombie: true              # Enable equipment for regular zombies
   drowned: false
   husk: false
   zombified-piglin: false
