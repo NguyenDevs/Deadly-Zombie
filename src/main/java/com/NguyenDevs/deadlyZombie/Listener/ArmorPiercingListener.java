@@ -23,7 +23,7 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ArmorPiercingListener implements Listener {
+public class ArmorPiercingListener implements Listener, CleanupListener {
     private final ConfigManager configManager;
     private static final Random RANDOM = new Random();
 
@@ -202,6 +202,7 @@ public class ArmorPiercingListener implements Listener {
         }
     }
 
+    @Override
     public void cleanup() {
         if (cleanupTask != null && !cleanupTask.isCancelled()) {
             cleanupTask.cancel();
