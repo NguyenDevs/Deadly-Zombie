@@ -74,7 +74,6 @@ public final class DeadlyZombie extends JavaPlugin {
             if (registry.get(breakFlagPath) == null) {
                 StateFlag breakFlag = new StateFlag(breakFlagPath, true);
                 registry.register(breakFlag);
-                getLogger().info("Registered WorldGuard flag: " + breakFlagPath);
             }
 
             // Register zd-rage flag
@@ -82,7 +81,6 @@ public final class DeadlyZombie extends JavaPlugin {
             if (registry.get(rageFlagPath) == null) {
                 StateFlag rageFlag = new StateFlag(rageFlagPath, true);
                 registry.register(rageFlag);
-                getLogger().info("Registered WorldGuard flag: " + rageFlagPath);
             }
 
         } catch (FlagConflictException e) {
@@ -108,7 +106,7 @@ public final class DeadlyZombie extends JavaPlugin {
                             worldGuardReady = true;
                             Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
                                     "&8[&aDeadly&2Zombie&8] &aWorldGuard integration ready with " + flagCount +
-                                            " custom flags: zd-break, zd-rage"));
+                                            " custom flags."));
                         } else {
                             getServer().getScheduler().runTaskLater(this, () -> {
                                 boolean delayedReady = wgOn.isReady();
@@ -117,7 +115,7 @@ public final class DeadlyZombie extends JavaPlugin {
                                     worldGuardReady = true;
                                     Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&',
                                             "&8[&aDeadly&2Zombie&8] &aWorldGuard integration ready with " +
-                                                    delayedFlagCount + " custom flags: zd-break, zd-rage"));
+                                                    delayedFlagCount + " custom flags."));
                                 } else {
                                     getLogger().severe("WorldGuard integration failed - flags not loaded properly");
                                     getLogger().severe("Ready: " + delayedReady + ", Flag count: " + delayedFlagCount);
