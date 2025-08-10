@@ -1,6 +1,7 @@
 package com.NguyenDevs.deadlyZombie.Manager;
 
 import com.NguyenDevs.deadlyZombie.DeadlyZombie;
+import com.NguyenDevs.deadlyZombie.Listener.ArmorPiercingListener;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -11,7 +12,7 @@ import java.util.Arrays;
 
 public class ConfigManager {
     private final JavaPlugin plugin;
-
+    private ArmorPiercingListener armorPiercingListener;
     private FileConfiguration config;
     private FileConfiguration toolsConfig;
     private FileConfiguration enchantsConfig;
@@ -84,18 +85,6 @@ public class ConfigManager {
             equipmentSection.set("zombie-villager", false);
         }
 
-        // Add comments for equipment section
-        config.setComments("equipment", Arrays.asList(
-                "Equipment settings for different zombie types",
-                "enable: Master switch for all zombie equipment",
-                "Individual switches for each zombie type:"
-        ));
-        config.setComments("equipment.zombie", Arrays.asList("Enable equipment for regular zombies"));
-        config.setComments("equipment.drowned", Arrays.asList("Enable equipment for drowned zombies"));
-        config.setComments("equipment.husk", Arrays.asList("Enable equipment for husk zombies"));
-        config.setComments("equipment.zombified-piglin", Arrays.asList("Enable equipment for zombified piglins"));
-        config.setComments("equipment.zombie-villager", Arrays.asList("Enable equipment for zombie villagers (disabled by default)"));
-
         // Zombie break block
         config.addDefault("zombie-break-block.enabled", true);
 
@@ -141,13 +130,6 @@ public class ConfigManager {
         }
         armorPiercingEffects.addDefault("particles", true);
         armorPiercingEffects.addDefault("sound", true);
-        config.setComments("armor-piercing", Arrays.asList(
-                "Armor piercing settings",
-                "chance: Percentage chance that zombies will ignore armor, toughness, enchantments, effects, and attack health directly",
-                "effects: Visual and sound effects when armor piercing occurs"
-        ));
-        config.setComments("armor-piercing.effects.particles", Arrays.asList("Enable particle effects when armor is pierced"));
-        config.setComments("armor-piercing.effects.sound", Arrays.asList("Enable sound effects when armor is pierced"));
 
         // Disable worlds
         config.addDefault("disable-worlds", Arrays.asList("example", "example_nether", "example_the_end"));
@@ -172,15 +154,14 @@ public class ConfigManager {
     }
 
     public void reloadConfigs() {
-        if (plugin instanceof DeadlyZombie) {
-            ((DeadlyZombie) plugin).reloadAll();
-        } else {
-            cleanup();
-            plugin.reloadConfig();
-            this.config = plugin.getConfig();
-            setupDefaultConfig();
-            loadConfigs();
+        cleanup();
+        if (armorPiercingListener != null) {
+            armorPiercingListener.cleanup();
         }
+        plugin.reloadConfig();
+        this.config = plugin.getConfig();
+        setupDefaultConfig();
+        loadConfigs();
     }
 
     public void cleanup() {
