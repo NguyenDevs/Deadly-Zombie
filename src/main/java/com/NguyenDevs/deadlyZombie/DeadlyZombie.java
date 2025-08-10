@@ -93,7 +93,7 @@ public final class DeadlyZombie extends JavaPlugin {
         if (zombieBreakBlockListener != null && zombieBreakBlockListener instanceof CleanupListener) {
             ((CleanupListener) zombieBreakBlockListener).cleanup();
         }
-
+        configManager.cleanup();
         Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&', "&8[&aDeadly&2Zombie&8] &cDeadlyZombie plugin disabled!"));
     }
 
