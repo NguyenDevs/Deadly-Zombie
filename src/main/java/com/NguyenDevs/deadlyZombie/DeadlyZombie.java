@@ -24,6 +24,14 @@ public final class DeadlyZombie extends JavaPlugin {
     private WGPlugin wgPlugin;
     private boolean worldGuardReady = false;
 
+    private ArmorPiercingListener armorPiercingListener;
+    private TankyMonsterListener tankyMonsterListener;
+    private ParasiteSummonListener parasiteSummonListener;
+    private MobCriticalStrikeListener mobCriticalStrikeListener;
+    private ZombieRageListener zombieRageListener;
+    private ZombieEquipmentHandler zombieEquipmentHandler;
+    private ZombieBreakBlockListener zombieBreakBlockListener;
+
     @Override
     public void onLoad() {
         instance = this;
@@ -36,20 +44,25 @@ public final class DeadlyZombie extends JavaPlugin {
         configManager.loadConfigs();
         initializeWorldGuard();
 
-        // Register event listeners
-        getServer().getPluginManager().registerEvents(new ArmorPiercingListener(configManager), this);
-        getServer().getPluginManager().registerEvents(new TankyMonsterListener(configManager), this);
-        getServer().getPluginManager().registerEvents(new ParasiteSummonListener(configManager), this);
-        getServer().getPluginManager().registerEvents(new MobCriticalStrikeListener(configManager), this);
-        getServer().getPluginManager().registerEvents(new ZombieRageListener(configManager, this), this);
-        getServer().getPluginManager().registerEvents(new ZombieEquipmentHandler(configManager, this), this);
-        getServer().getPluginManager().registerEvents(new ZombieBreakBlockListener(configManager, this), this);
+        armorPiercingListener = new ArmorPiercingListener(configManager);
+        tankyMonsterListener = new TankyMonsterListener(configManager);
+        parasiteSummonListener = new ParasiteSummonListener(configManager);
+        mobCriticalStrikeListener = new MobCriticalStrikeListener(configManager);
+        zombieRageListener = new ZombieRageListener(configManager, this);
+        zombieEquipmentHandler = new ZombieEquipmentHandler(configManager, this);
+        zombieBreakBlockListener = new ZombieBreakBlockListener(configManager, this);
 
-        // Register command
+        getServer().getPluginManager().registerEvents(armorPiercingListener, this);
+        getServer().getPluginManager().registerEvents(tankyMonsterListener, this);
+        getServer().getPluginManager().registerEvents(parasiteSummonListener, this);
+        getServer().getPluginManager().registerEvents(mobCriticalStrikeListener, this);
+        getServer().getPluginManager().registerEvents(zombieRageListener, this);
+        getServer().getPluginManager().registerEvents(zombieEquipmentHandler, this);
+        getServer().getPluginManager().registerEvents(zombieBreakBlockListener, this);
+
         getCommand("deadlyzombie").setExecutor(new ReloadCommand(configManager));
         getCommand("deadlyzombie").setTabCompleter(new DeadlyZombieTabCompleter());
 
-        // Check for updates
         UpdateChecker updateChecker = new UpdateChecker(127800, this);
         updateChecker.checkForUpdate();
 
@@ -59,6 +72,28 @@ public final class DeadlyZombie extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (armorPiercingListener != null) {
+            armorPiercingListener.cleanup();
+        }
+        if (tankyMonsterListener != null && tankyMonsterListener instanceof CleanupListener) {
+            ((CleanupListener) tankyMonsterListener).cleanup();
+        }
+        if (parasiteSummonListener != null && parasiteSummonListener instanceof CleanupListener) {
+            ((CleanupListener) parasiteSummonListener).cleanup();
+        }
+        if (mobCriticalStrikeListener != null && mobCriticalStrikeListener instanceof CleanupListener) {
+            ((CleanupListener) mobCriticalStrikeListener).cleanup();
+        }
+        if (zombieRageListener != null && zombieRageListener instanceof CleanupListener) {
+            ((CleanupListener) zombieRageListener).cleanup();
+        }
+        if (zombieEquipmentHandler != null && zombieEquipmentHandler instanceof CleanupListener) {
+            ((CleanupListener) zombieEquipmentHandler).cleanup();
+        }
+        if (zombieBreakBlockListener != null && zombieBreakBlockListener instanceof CleanupListener) {
+            ((CleanupListener) zombieBreakBlockListener).cleanup();
+        }
+
         Bukkit.getConsoleSender().sendMessage(ChatColor.translateAlternateColorCodes('&', "&8[&aDeadly&2Zombie&8] &cDeadlyZombie plugin disabled!"));
     }
 
@@ -69,14 +104,12 @@ public final class DeadlyZombie extends JavaPlugin {
         try {
             FlagRegistry registry = WorldGuard.getInstance().getFlagRegistry();
 
-            // Register zd-break flag
             String breakFlagPath = "zd-break";
             if (registry.get(breakFlagPath) == null) {
                 StateFlag breakFlag = new StateFlag(breakFlagPath, true);
                 registry.register(breakFlag);
             }
 
-            // Register zd-rage flag
             String rageFlagPath = "zd-rage";
             if (registry.get(rageFlagPath) == null) {
                 StateFlag rageFlag = new StateFlag(rageFlagPath, true);
