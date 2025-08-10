@@ -1,5 +1,5 @@
 name: DeadlyZombie
-version: 1.0.1
+version: 1.0.2
 main: com.NguyenDevs.deadlyZombie.DeadlyZombie
 api-version: 1.19
 depend: [WorldGuard, ProtocolLib]
