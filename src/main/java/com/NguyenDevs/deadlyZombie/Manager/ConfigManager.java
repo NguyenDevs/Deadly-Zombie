@@ -1,5 +1,6 @@
 package com.NguyenDevs.deadlyZombie.Manager;
 
+import com.NguyenDevs.deadlyZombie.DeadlyZombie;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -171,11 +172,15 @@ public class ConfigManager {
     }
 
     public void reloadConfigs() {
-        cleanup();
-        plugin.reloadConfig();
-        this.config = plugin.getConfig();
-        setupDefaultConfig();
-        loadConfigs();
+        if (plugin instanceof DeadlyZombie) {
+            ((DeadlyZombie) plugin).reloadAll();
+        } else {
+            cleanup();
+            plugin.reloadConfig();
+            this.config = plugin.getConfig();
+            setupDefaultConfig();
+            loadConfigs();
+        }
     }
 
     public void cleanup() {
