@@ -5,6 +5,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.Difficulty;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Zombie;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -30,6 +32,7 @@ public class EquipmentUtils {
     }
 
     public void equipRandomWeapon(EntityEquipment equipment) {
+
         ConfigurationSection toolsSection = configManager.getToolsConfig().getConfigurationSection("tools");
         if (toolsSection == null) return;
 
@@ -85,6 +88,7 @@ public class EquipmentUtils {
     }
 
     public void equipRandomArmor(EntityEquipment equipment) {
+
         ConfigurationSection armorSection = configManager.getArmorConfig().getConfigurationSection("armor");
         if (armorSection == null) return;
 
