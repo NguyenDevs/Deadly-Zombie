@@ -1,176 +1,99 @@
 package com.NguyenDevs.deadlyZombie.Utils;
 
 import com.NguyenDevs.deadlyZombie.Manager.ConfigManager;
-import org.bukkit.Bukkit;
-import org.bukkit.Difficulty;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Zombie;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.Random;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class EquipmentUtils {
     private final ConfigManager configManager;
     private final EnchantmentUtils enchantmentUtils;
-    private final JavaPlugin plugin;
-    private final Random random;
 
-    public EquipmentUtils(ConfigManager configManager, JavaPlugin plugin) {
+    public EquipmentUtils(ConfigManager configManager) {
         this.configManager = configManager;
         this.enchantmentUtils = new EnchantmentUtils(configManager);
-        this.plugin = plugin;
-        this.random = new Random();
     }
 
-    private double getDifficultyCoefficient() {
-        String difficulty = plugin.getServer().getWorlds().get(0).getDifficulty().name();
-        return configManager.getConfig().getDouble("difficulty-coef." + difficulty, 0.0);
-    }
+    public void equipWeapon(EntityEquipment equipment) {
+        ConfigurationSection tools = configManager.getGearConfig().getConfigurationSection("tools");
+        if (tools == null) return;
 
-    public void equipRandomWeapon(EntityEquipment equipment) {
+        double difficultyBonus = getDifficultyBonus();
+        double randomVal = ThreadLocalRandom.current().nextDouble() * 100;
 
-        ConfigurationSection toolsSection = configManager.getToolsConfig().getConfigurationSection("tools");
-        if (toolsSection == null) return;
+        for (String key : tools.getKeys(false)) {
+            ConfigurationSection toolData = tools.getConfigurationSection(key);
+            if (toolData == null) continue;
 
-        double difficultyCoef = getDifficultyCoefficient();
-        double totalProbability = 0.0;
+            double chance = toolData.getDouble("chance") + difficultyBonus;
 
-        for (String key : toolsSection.getKeys(false)) {
-            double base = toolsSection.getDouble(key + ".probability", 0.0);
-            if (!isNoneTool(toolsSection, key)) {
-                base += difficultyCoef;
+            if (randomVal < chance) {
+                Material mat = Material.matchMaterial(toolData.getString("material", "AIR"));
+                if (mat != null && mat != Material.AIR) {
+                    ItemStack item = new ItemStack(mat);
+
+                    enchantmentUtils.applyEnchants(item);
+
+                    equipment.setItemInMainHand(item);
+                    equipment.setItemInMainHandDropChance((float) toolData.getDouble("drop-chance") / 100f);
+                    return;
+                }
             }
-            totalProbability += base;
-        }
-
-        double randomValue = random.nextDouble() * totalProbability;
-        double current = 0.0;
-        String selectedTool = null;
-
-        for (String key : toolsSection.getKeys(false)) {
-            double base = toolsSection.getDouble(key + ".probability", 0.0);
-            if (!isNoneTool(toolsSection, key)) {
-                base += difficultyCoef;
-            }
-            current += base;
-            if (randomValue <= current) {
-                selectedTool = key;
-                break;
-            }
-        }
-
-        if (selectedTool != null) {
-            String materialName = toolsSection.getString(selectedTool + ".material");
-            Material material = Material.matchMaterial(materialName);
-
-            if (material == null) return;
-
-            if (material == Material.AIR) {
-                equipment.setItemInMainHand(null);
-                equipment.setItemInMainHandDropChance(0f);
-                return;
-            }
-
-            ItemStack weapon = new ItemStack(material);
-            int maxDurability = material.getMaxDurability();
-            if (maxDurability > 0) {
-                weapon.setDurability((short) (random.nextInt(maxDurability)));
-            }
-
-            enchantmentUtils.applyRandomEnchantments(weapon, selectedTool);
-            equipment.setItemInMainHand(weapon);
-            equipment.setItemInMainHandDropChance((float) toolsSection.getDouble(selectedTool + ".drop-chance"));
+            randomVal -= chance;
         }
     }
 
-    public void equipRandomArmor(EntityEquipment equipment) {
-
-        ConfigurationSection armorSection = configManager.getArmorConfig().getConfigurationSection("armor");
+    public void equipArmor(EntityEquipment equipment) {
+        ConfigurationSection armorSection = configManager.getGearConfig().getConfigurationSection("armor");
         if (armorSection == null) return;
 
-        double difficultyCoef = getDifficultyCoefficient();
-        double totalProbability = 0.0;
+        double difficultyBonus = getDifficultyBonus();
+        double randomVal = ThreadLocalRandom.current().nextDouble() * 100;
 
         for (String key : armorSection.getKeys(false)) {
-            double base = armorSection.getDouble(key + ".probability", 0.0);
-            if (!isNoneArmor(armorSection, key)) {
-                base += difficultyCoef;
-            }
-            totalProbability += base;
-        }
+            ConfigurationSection armorData = armorSection.getConfigurationSection(key);
+            if (armorData == null) continue;
 
-        double randomValue = random.nextDouble() * totalProbability;
-        double current = 0.0;
-        String selectedSet = null;
+            double chance = armorData.getDouble("chance") + difficultyBonus;
 
-        for (String key : armorSection.getKeys(false)) {
-            double base = armorSection.getDouble(key + ".probability", 0.0);
-            if (!isNoneArmor(armorSection, key)) {
-                base += difficultyCoef;
-            }
-            current += base;
-            if (randomValue <= current) {
-                selectedSet = key;
-                break;
-            }
-        }
+            if (randomVal < chance) {
+                List<String> pieces = armorData.getStringList("pieces");
+                float dropChance = (float) armorData.getDouble("drop-chance") / 100f;
 
-        if (selectedSet == null) return;
+                for (String piece : pieces) {
+                    Material mat = Material.matchMaterial(piece);
+                    if (mat != null) {
+                        ItemStack item = new ItemStack(mat);
 
-        ConfigurationSection selectedArmor = armorSection.getConfigurationSection(selectedSet);
-        if (selectedArmor == null) return;
+                        enchantmentUtils.applyEnchants(item);
 
-        var pieces = selectedArmor.getStringList("pieces");
-        if (pieces.isEmpty()) return;
-
-        double dropChance = selectedArmor.getDouble("drop-chance", 0.0);
-
-        for (String piece : pieces) {
-            if (random.nextDouble() > 0.5) continue;
-
-            Material material = Material.matchMaterial(piece);
-            if (material == null) continue;
-
-            ItemStack armorPiece = new ItemStack(material);
-            int maxDurability = material.getMaxDurability();
-            if (maxDurability > 0) {
-                armorPiece.setDurability((short) random.nextInt(maxDurability));
-            }
-
-            enchantmentUtils.applyRandomArmorEnchantments(armorPiece);
-
-            switch (material.name().toLowerCase()) {
-                case "leather_helmet", "iron_helmet", "golden_helmet", "diamond_helmet", "netherite_helmet" -> {
-                    equipment.setHelmet(armorPiece);
-                    equipment.setHelmetDropChance((float) dropChance);
+                        String name = mat.name();
+                        if (name.endsWith("_HELMET")) {
+                            equipment.setHelmet(item);
+                            equipment.setHelmetDropChance(dropChance);
+                        } else if (name.endsWith("_CHESTPLATE")) {
+                            equipment.setChestplate(item);
+                            equipment.setChestplateDropChance(dropChance);
+                        } else if (name.endsWith("_LEGGINGS")) {
+                            equipment.setLeggings(item);
+                            equipment.setLeggingsDropChance(dropChance);
+                        } else if (name.endsWith("_BOOTS")) {
+                            equipment.setBoots(item);
+                            equipment.setBootsDropChance(dropChance);
+                        }
+                    }
                 }
-                case "leather_chestplate", "iron_chestplate", "golden_chestplate", "diamond_chestplate", "netherite_chestplate" -> {
-                    equipment.setChestplate(armorPiece);
-                    equipment.setChestplateDropChance((float) dropChance);
-                }
-                case "leather_leggings", "iron_leggings", "golden_leggings", "diamond_leggings", "netherite_leggings" -> {
-                    equipment.setLeggings(armorPiece);
-                    equipment.setLeggingsDropChance((float) dropChance);
-                }
-                case "leather_boots", "iron_boots", "golden_boots", "diamond_boots", "netherite_boots" -> {
-                    equipment.setBoots(armorPiece);
-                    equipment.setBootsDropChance((float) dropChance);
-                }
+                return;
             }
+            randomVal -= chance;
         }
     }
 
-    private boolean isNoneTool(ConfigurationSection toolsSection, String key) {
-        String materialName = toolsSection.getString(key + ".material", "");
-        return "AIR".equalsIgnoreCase(materialName);
-    }
-
-    private boolean isNoneArmor(ConfigurationSection armorSection, String key) {
-        var pieces = armorSection.getStringList(key + ".pieces");
-        return pieces == null || pieces.isEmpty();
+    private double getDifficultyBonus() {
+        return configManager.getConfig().getDouble("difficulty-bonus.NORMAL", 0.0);
     }
 }

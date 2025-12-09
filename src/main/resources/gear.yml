@@ -1,0 +1,269 @@
+tools:
+  # === SWORDS ===
+  wooden_sword:
+    material: WOODEN_SWORD
+    chance: 6.0
+    drop-chance: 20.0
+  golden_sword:
+    material: GOLDEN_SWORD
+    chance: 5.0
+    drop-chance: 15.0
+  iron_sword:
+    material: IRON_SWORD
+    chance: 3.0
+    drop-chance: 10.0
+  diamond_sword:
+    material: DIAMOND_SWORD
+    chance: 0.2
+    drop-chance: 5.0
+  netherite_sword:
+    material: NETHERITE_SWORD
+    chance: 0.03
+    drop-chance: 3.0
+
+  # === AXES ===
+  wooden_axe:
+    material: WOODEN_AXE
+    chance: 6.0
+    drop-chance: 20.0
+  golden_axe:
+    material: GOLDEN_AXE
+    chance: 5.0
+    drop-chance: 15.0
+  iron_axe:
+    material: IRON_AXE
+    chance: 3.0
+    drop-chance: 10.0
+  diamond_axe:
+    material: DIAMOND_AXE
+    chance: 0.2
+    drop-chance: 5.0
+  netherite_axe:
+    material: NETHERITE_AXE
+    chance: 0.03
+    drop-chance: 3.0
+
+  # === PICKAXES ===
+  wooden_pickaxe:
+    material: WOODEN_PICKAXE
+    chance: 6.0
+    drop-chance: 20.0
+  golden_pickaxe:
+    material: GOLDEN_PICKAXE
+    chance: 5.0
+    drop-chance: 15.0
+  iron_pickaxe:
+    material: IRON_PICKAXE
+    chance: 3.0
+    drop-chance: 10.0
+  diamond_pickaxe:
+    material: DIAMOND_PICKAXE
+    chance: 0.2
+    drop-chance: 5.0
+  netherite_pickaxe:
+    material: NETHERITE_PICKAXE
+    chance: 0.03
+    drop-chance: 3.0
+
+  # === SHOVELS ===
+  wooden_shovel:
+    material: WOODEN_SHOVEL
+    chance: 6.0
+    drop-chance: 20.0
+  golden_shovel:
+    material: GOLDEN_SHOVEL
+    chance: 5.0
+    drop-chance: 15.0
+  iron_shovel:
+    material: IRON_SHOVEL
+    chance: 3.0
+    drop-chance: 10.0
+  diamond_shovel:
+    material: DIAMOND_SHOVEL
+    chance: 0.2
+    drop-chance: 5.0
+  netherite_shovel:
+    material: NETHERITE_SHOVEL
+    chance: 0.03
+    drop-chance: 3.0
+
+
+armor:
+  leather:
+    chance: 4.0
+    drop-chance: 10.0
+    pieces:
+      - LEATHER_HELMET
+      - LEATHER_CHESTPLATE
+      - LEATHER_LEGGINGS
+      - LEATHER_BOOTS
+  iron:
+    chance: 1.0
+    drop-chance: 10.0
+    pieces:
+      - IRON_HELMET
+      - IRON_CHESTPLATE
+      - IRON_LEGGINGS
+      - IRON_BOOTS
+  gold:
+    chance: 1.0
+    drop-chance: 10.0
+    pieces:
+      - GOLDEN_HELMET
+      - GOLDEN_CHESTPLATE
+      - GOLDEN_LEGGINGS
+      - GOLDEN_BOOTS
+  diamond:
+    chance: 0.5
+    drop-chance: 5.0
+    pieces:
+      - DIAMOND_HELMET
+      - DIAMOND_CHESTPLATE
+      - DIAMOND_LEGGINGS
+      - DIAMOND_BOOTS
+  netherite:
+    chance: 0.1
+    drop-chance: 1.0
+    pieces:
+      - NETHERITE_HELMET
+      - NETHERITE_CHESTPLATE
+      - NETHERITE_LEGGINGS
+      - NETHERITE_BOOTS
+
+enchants:
+  sharpness:
+    chance: 30.0
+    min-level: 1
+    max-level: 5
+    targets:
+      - SWORD
+  smite:
+    chance: 25.0
+    min-level: 1
+    max-level: 5
+    targets:
+      - SWORD
+  bane_of_arthropods:
+    chance: 25.0
+    min-level: 1
+    max-level: 5
+    targets:
+      - SWORD
+  knockback:
+    chance: 20.0
+    min-level: 1
+    max-level: 2
+    targets:
+      - SWORD
+  fire_aspect:
+    chance: 20.0
+    min-level: 1
+    max-level: 2
+    targets:
+      - SWORD
+  looting:
+    chance: 15.0
+    min-level: 1
+    max-level: 3
+    targets:
+      - SWORD
+  efficiency:
+    chance: 30.0
+    min-level: 1
+    max-level: 5
+    targets:
+      - AXE
+      - PICKAXE
+      - SHOVEL
+  silk_touch:
+    chance: 10.0
+    min-level: 1
+    max-level: 1
+    targets:
+      - AXE
+      - PICKAXE
+      - SHOVEL
+  unbreaking:
+    chance: 40.0
+    min-level: 1
+    max-level: 3
+    targets:
+      - AXE
+      - PICKAXE
+      - SHOVEL
+      - SWORD
+      - ARMOR
+  fortune:
+    chance: 15.0
+    min-level: 1
+    max-level: 3
+    targets:
+      - AXE
+      - PICKAXE
+      - SHOVEL
+  protection:
+    chance: 30.0
+    min-level: 1
+    max-level: 4
+    targets:
+      - ARMOR
+  fire_protection:
+    chance: 25.0
+    min-level: 1
+    max-level: 4
+    targets:
+      - ARMOR
+  blast_protection:
+    chance: 25.0
+    min-level: 1
+    max-level: 4
+    targets:
+      - ARMOR
+  projectile_protection:
+    chance: 25.0
+    min-level: 1
+    max-level: 4
+    targets:
+      - ARMOR
+  respiration:
+    chance: 15.0
+    min-level: 1
+    max-level: 3
+    targets:
+      - ARMOR
+  aqua_affinity:
+    chance: 15.0
+    min-level: 1
+    max-level: 1
+    targets:
+      - ARMOR
+  thorns:
+    chance: 10.0
+    min-level: 1
+    max-level: 3
+    targets:
+      - ARMOR
+  depth_strider:
+    chance: 15.0
+    min-level: 1
+    max-level: 3
+    targets:
+      - ARMOR
+  frost_walker:
+    chance: 10.0
+    min-level: 1
+    max-level: 2
+    targets:
+      - ARMOR
+  soul_speed:
+    chance: 10.0
+    min-level: 1
+    max-level: 3
+    targets:
+      - ARMOR
+  swift_sneak:
+    chance: 10.0
+    min-level: 1
+    max-level: 3
+    targets:
+      - ARMOR

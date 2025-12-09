@@ -1,7 +1,7 @@
 package com.NguyenDevs.deadlyZombie.Listener;
 
 import com.NguyenDevs.deadlyZombie.DeadlyZombie;
-import com.NguyenDevs.deadlyZombie.Manager.ConfigManager;
+import com.NguyenDevs.deadlyZombie.Feature.DeadlyFeature;
 import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
@@ -9,15 +9,12 @@ import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.wrappers.BlockPosition;
 import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.BlockIterator;
@@ -28,38 +25,27 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
 
-public class ZombieBreakBlockListener implements Listener, CleanupListener {
-    private final ConfigManager configManager;
-    private final JavaPlugin plugin;
-    private static final Random RANDOM = new Random();
-
-    // Core Maps
+public class ZombieBreakBlockListener extends DeadlyFeature {
     private final Map<UUID, BukkitTask> activeBreakingTasks = new ConcurrentHashMap<>();
-
-    // Persistent Targeting System
     private final Map<UUID, UUID> persistentTargets = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastTargetTime = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastTargetSearchTime = new ConcurrentHashMap<>();
 
-    // Constants
     private static final double MAX_TARGET_DISTANCE_SQUARED = 150.0 * 150.0;
     private static final long TARGET_SEARCH_COOLDOWN = 2000;
 
-    public ZombieBreakBlockListener(ConfigManager configManager, JavaPlugin plugin) {
-        this.configManager = configManager;
-        this.plugin = plugin;
+    public ZombieBreakBlockListener(DeadlyZombie plugin) {
+        super(plugin, "break-block");
         startTasks();
     }
 
     private void startTasks() {
-        // 1. Main Break Loop
         new BukkitRunnable() {
             @Override
             public void run() {
                 try {
                     for (World world : Bukkit.getWorlds()) {
-                        if (isWorldDisabled(world)) continue;
-                        if (!configManager.getConfig().getBoolean("zombie-break-block.enabled", true)) continue;
+                        if (!shouldRun(world)) continue;
 
                         List<Zombie> zombies = new ArrayList<>(world.getEntitiesByClass(Zombie.class));
                         for (Zombie zombie : zombies) {
@@ -67,7 +53,7 @@ public class ZombieBreakBlockListener implements Listener, CleanupListener {
                             Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, () -> {
                                 try {
                                     if (zombie.isValid() && (zombie.getTarget() instanceof Player || zombie.getTarget() instanceof Villager)) {
-                                        if (DeadlyZombie.getInstance().getWorldGuard().isFlagAllowedAtLocation(zombie.getLocation(), "zd-break")) {
+                                        if (plugin.getWorldGuard().isFlagAllowedAtLocation(zombie.getLocation(), "zd-break")) {
                                             processZombieBreakBlock(zombie);
                                         }
                                     }
@@ -83,7 +69,6 @@ public class ZombieBreakBlockListener implements Listener, CleanupListener {
             }
         }.runTaskTimer(plugin, 0L, 5L);
 
-        // 2. Persistent Target Maintenance
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -91,13 +76,12 @@ public class ZombieBreakBlockListener implements Listener, CleanupListener {
             }
         }.runTaskTimer(plugin, 0L, 10L);
 
-        // 3. Nearby Player Search
         new BukkitRunnable() {
             @Override
             public void run() {
                 try {
                     for (World world : Bukkit.getWorlds()) {
-                        if (isWorldDisabled(world)) continue;
+                        if (!shouldRun(world)) continue;
                         List<Zombie> zombies = new ArrayList<>(world.getEntitiesByClass(Zombie.class));
                         for (Zombie zombie : zombies) {
                             Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -114,10 +98,6 @@ public class ZombieBreakBlockListener implements Listener, CleanupListener {
                 }
             }
         }.runTaskTimer(plugin, 0L, 20L);
-    }
-
-    private boolean isWorldDisabled(World world) {
-        return configManager.getConfig().getStringList("disable-worlds").contains(world.getName());
     }
 
     @Override
@@ -142,7 +122,7 @@ public class ZombieBreakBlockListener implements Listener, CleanupListener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityTarget(EntityTargetEvent event) {
         if (!(event.getEntity() instanceof Zombie zombie)) return;
-        if (isWorldDisabled(zombie.getWorld())) return;
+        if (!shouldRun(zombie.getWorld())) return;
 
         UUID zombieUUID = zombie.getUniqueId();
 
@@ -190,7 +170,7 @@ public class ZombieBreakBlockListener implements Listener, CleanupListener {
         for (Player player : zombie.getWorld().getPlayers()) {
             if (player.getGameMode() == GameMode.SPECTATOR || player.getGameMode() == GameMode.CREATIVE) continue;
             if (!player.isOnline() || player.isDead()) continue;
-            if (isWorldDisabled(player.getWorld())) continue;
+            if (!shouldRun(player.getWorld())) continue;
 
             double distSq = zombieLoc.distanceSquared(player.getLocation());
             if (distSq < closestDistanceSq) {
@@ -236,8 +216,6 @@ public class ZombieBreakBlockListener implements Listener, CleanupListener {
         });
     }
 
-    // --- Logic Phá Block ---
-
     private void processZombieBreakBlock(Zombie zombie) {
         UUID zombieUUID = zombie.getUniqueId();
         if (activeBreakingTasks.containsKey(zombieUUID)) return;
@@ -256,8 +234,6 @@ public class ZombieBreakBlockListener implements Listener, CleanupListener {
 
         ItemStack itemInHand = zombie.getEquipment().getItemInMainHand();
         Material toolType = itemInHand != null ? itemInHand.getType() : Material.AIR;
-
-        // Kiểm tra xem tool có hợp lệ không (Axe/Pickaxe/Shovel)
         if (!isValidTool(toolType)) return;
 
         Block targetBlock = selectBlockToBreak(zombie, target, toolType);
@@ -310,7 +286,7 @@ public class ZombieBreakBlockListener implements Listener, CleanupListener {
         BukkitRunnable breakTask = new BukkitRunnable() {
             int ticksElapsed = 0;
             ProtocolManager protocolManager = ProtocolLibrary.getProtocolManager();
-            int entityId = RANDOM.nextInt(Integer.MAX_VALUE);
+            int entityId = ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
             Location breakLocation = zombie.getLocation().clone();
 
             @Override
@@ -327,7 +303,6 @@ public class ZombieBreakBlockListener implements Listener, CleanupListener {
                     }
 
                     zombie.setTarget(null);
-
                     Location lookAt = block.getLocation().add(0.5, 0.5, 0.5);
                     Vector dir = lookAt.toVector().subtract(zombie.getEyeLocation().toVector());
                     Location newLoc = zombie.getLocation().setDirection(dir);
@@ -355,10 +330,8 @@ public class ZombieBreakBlockListener implements Listener, CleanupListener {
                     zombie.getWorld().spawnParticle(Particle.BLOCK_CRACK, block.getLocation().add(0.5, 0.5, 0.5), 50, 0.4, 0.4, 0.4, 0.1, block.getBlockData());
 
                     block.breakNaturally(tool);
-
                     zombie.setTarget(target);
                     cleanup();
-
                     Bukkit.getScheduler().runTask(plugin, () -> applyZombieBreakBlock(zombie));
 
                 } catch (Exception e) {
@@ -400,29 +373,14 @@ public class ZombieBreakBlockListener implements Listener, CleanupListener {
     private boolean isValidTool(Material material) {
         return isPickaxe(material) || isShovel(material) || isAxe(material);
     }
-
-    private boolean isPickaxe(Material material) {
-        return material.name().contains("PICKAXE");
-    }
-
-    private boolean isShovel(Material material) {
-        return material.name().contains("SHOVEL");
-    }
-
-    private boolean isAxe(Material material) {
-        return material.name().contains("_AXE");
-    }
+    private boolean isPickaxe(Material material) { return material.name().contains("PICKAXE"); }
+    private boolean isShovel(Material material) { return material.name().contains("SHOVEL"); }
+    private boolean isAxe(Material material) { return material.name().contains("_AXE"); }
 
     private boolean canBreakBlock(Material tool, Material block) {
         if (block.getHardness() < 0) return false;
-
-        // Map từ tool sang category trong blocks.yml
         String category = isPickaxe(tool) ? "pickaxe" : isShovel(tool) ? "shovel" : "axe";
-
-        ConfigurationSection blocksSection = configManager.getBlocksConfig().getConfigurationSection("blocks");
-        if (blocksSection == null) return false;
-
-        List<String> breakableBlocks = blocksSection.getStringList(category);
+        List<String> breakableBlocks = configManager.getBlocksConfig().getStringList("blocks." + category);
         return breakableBlocks.contains(block.name());
     }
 
@@ -436,7 +394,6 @@ public class ZombieBreakBlockListener implements Listener, CleanupListener {
         else if (tool.name().contains("WOODEN")) toolMultiplier = 2.0f;
         else if (tool.name().contains("GOLDEN")) toolMultiplier = 12.0f;
         else if (tool.name().contains("NETHERITE")) toolMultiplier = 9.0f;
-
         return blockHardness * 1.5f / toolMultiplier * 20.0;
     }
 }

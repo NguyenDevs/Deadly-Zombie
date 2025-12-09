@@ -1,59 +1,57 @@
-update-notify: true
+settings:
+  update-notify: true
+  disabled-worlds:
+    - example_world
+    - example_nether
 
-equipment:
-  enable: true
-  zombie: true              # Enable equipment for regular zombies
-  drowned: false
-  husk: false
-  zombified-piglin: false
-  zombie-villager: false
+difficulty-bonus:
+  EASY: 0.0
+  NORMAL: 10.0
+  HARD: 20.0
 
-zombie-break-block:
-  enabled: true             # Toggle zombie block-breaking behavior
+features:
+  equipment:
+    enabled: true
+    targets:
+      - ZOMBIE
+      #- DROWNED
+      #- HUSK
+      #- ZOMBIFIED_PIGLIN
 
-zombie-rage:
-  enabled: true
-  rage-duration: 10.0       # Duration of rage effects (in seconds)
-  damage-level: 1           # Strength potion level applied during rage
-  speed-level: 2            # Speed potion level applied during rage
+  break-block:
+    enabled: true
 
-tanky-monsters:
-  enabled: true
-  dmg-reduction-percent:
-    ZOMBIE: 30.0            # Reduces damage taken by 30% - You can add more mob below this line
-    #PIGLIN: 50.0
+  rage:
+    enabled: true
+    duration: 10.0
+    effects:
+      strength: 1
+      speed: 2
+    visual:
+      particles: true
+      sound: true
 
-parasite-summon:
-  enabled: true
-  chance-percent: 35.0      # Chance to summon silverfish when zombie died.
-  min: 1                    # Minimum number of silverfish spawned
-  max: 3                    # Maximum number of silverfish spawned
+  tanky:
+    enabled: true
+    reduction-percentage:
+      ZOMBIE: 30.0
 
-mob-critical-strikes:
-  enabled: true
-  damage-percent: 50.0      # Extra damage added on critical hit (%)
-  crit-chance:
-    ZOMBIE: 35.0            # Chance for ZOMBIE to land a critical hit (%) - You can add more mob below this line
-    #PIGLIN: 50.0
+  parasite:
+    enabled: true
+    chance: 35.0
+    amount:
+      min: 1
+      max: 3
 
-armor-piercing:
-  enabled: true
-  chance: 15                # Chance that Zombies will ignore armor, toughness armor, enchant, effect and attack directly to health.
-  effects:
-    particles: true
-    sound: true
+  armor-piercing:
+    enabled: true
+    chance: 15.0
+    visual:
+      particles: true
+      sound: true
 
-disable-worlds:
-  - example
-  - example_nether
-  - example_the_end
-
-# This section controls how much to increase the probability of equipping tools or armor
-# based on the current game difficulty. Values are added to each base probability.
-# Example: If diamond_sword has a base probability of 0.005 and difficulty is HARD (1.0),
-# the final probability becomes 1.005
-
-difficulty-coef:
-  EASY: 0.0       # No bonus applied to probabilities
-  NORMAL: 10.0    # +10% added to each probability
-  HARD: 20.0      # +20% added to each probability (hardest mode = highest gear spawn rate)
+  critical-strike:
+    enabled: true
+    bonus-damage: 50.0
+    chance:
+      ZOMBIE: 35.0

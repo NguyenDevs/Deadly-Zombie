@@ -6,82 +6,60 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class EnchantmentUtils {
     private final ConfigManager configManager;
-    private final Random random;
 
     public EnchantmentUtils(ConfigManager configManager) {
         this.configManager = configManager;
-        this.random = new Random();
     }
 
-    public void applyRandomEnchantments(ItemStack item, String toolType) {
-        ConfigurationSection enchantSection = configManager.getEnchantsConfig().getConfigurationSection("enchants");
-        if (enchantSection == null) return;
+    public void applyEnchants(ItemStack item) {
+        if (item == null || item.getType().isAir()) return;
 
-        for (String enchantName : enchantSection.getKeys(false)) {
-            ConfigurationSection enchant = enchantSection.getConfigurationSection(enchantName);
-            List<String> applicableTools = enchant.getStringList("applicable-tools");
+        ConfigurationSection enchantsConfig = configManager.getGearConfig().getConfigurationSection("enchants");
+        if (enchantsConfig == null) return;
 
-            if (applicableTools.contains(toolType)) {
-                double probability = enchant.getDouble("probability");
-                if (random.nextDouble() < probability) {
-                    Enchantment enchantment = Enchantment.getByName(enchantName.toUpperCase());
-                    if (enchantment != null) {
-                        int minLevel = enchant.getInt("min-level");
-                        int maxLevel = enchant.getInt("max-level");
-                        int level = random.nextInt(maxLevel - minLevel + 1) + minLevel;
-                        item.addEnchantment(enchantment, level);
+        String itemName = item.getType().name();
+
+        for (String enchantKey : enchantsConfig.getKeys(false)) {
+            ConfigurationSection data = enchantsConfig.getConfigurationSection(enchantKey);
+            if (data == null) continue;
+
+            List<String> targets = data.getStringList("targets");
+            if (!isApplicable(itemName, targets)) continue;
+
+            double chance = data.getDouble("chance");
+            if (ThreadLocalRandom.current().nextDouble() * 100 < chance) {
+                Enchantment enchant = Enchantment.getByName(enchantKey.toUpperCase());
+                if (enchant != null) {
+                    int min = data.getInt("min-level", 1);
+                    int max = data.getInt("max-level", 1);
+                    int level = ThreadLocalRandom.current().nextInt(min, max + 1);
+
+                    try {
+                        item.addEnchantment(enchant, level);
+                    } catch (Exception ignored) {
                     }
                 }
             }
         }
     }
 
-    public void applyRandomArmorEnchantments(ItemStack armor) {
-        ConfigurationSection enchantSection = configManager.getEnchantsConfig().getConfigurationSection("enchants");
-        if (enchantSection == null) return;
+    private boolean isApplicable(String materialName, List<String> targets) {
+        for (String target : targets) {
+            if (materialName.contains(target)) return true;
 
-        String armorType = armor.getType().name().toLowerCase();
-        String armorPiece = getArmorPiece(armorType);
-
-        for (String enchantName : enchantSection.getKeys(false)) {
-            ConfigurationSection enchant = enchantSection.getConfigurationSection(enchantName);
-            List<String> applicableTools = enchant.getStringList("applicable-tools");
-            List<String> applicableArmorPieces = enchant.getStringList("applicable-armor-pieces");
-
-            if (applicableTools.contains("armor") && applicableArmorPieces.contains(armorPiece)) {
-                double probability = enchant.getDouble("probability");
-                if (random.nextDouble() < probability) {
-                    Enchantment enchantment = Enchantment.getByName(enchantName.toUpperCase());
-                    if (enchantment != null) {
-                        int minLevel = enchant.getInt("min-level");
-                        int maxLevel = enchant.getInt("max-level");
-                        int level = random.nextInt(maxLevel - minLevel + 1) + minLevel;
-                        try {
-                            armor.addEnchantment(enchantment, level);
-                        } catch (IllegalArgumentException e) {
-                            configManager.getPlugin().getLogger().warning(
-                                    "Không thể áp dụng phù phép " + enchantName + " cho " + armorType);
-                        }
-                    }
+            if (target.equalsIgnoreCase("ARMOR")) {
+                if (materialName.endsWith("_HELMET") ||
+                        materialName.endsWith("_CHESTPLATE") ||
+                        materialName.endsWith("_LEGGINGS") ||
+                        materialName.endsWith("_BOOTS")) {
+                    return true;
                 }
             }
         }
-    }
-
-    private String getArmorPiece(String materialName) {
-        if (materialName.endsWith("_helmet")) {
-            return "helmet";
-        } else if (materialName.endsWith("_chestplate")) {
-            return "chestplate";
-        } else if (materialName.endsWith("_leggings")) {
-            return "leggings";
-        } else if (materialName.endsWith("_boots")) {
-            return "boots";
-        }
-        return "";
+        return false;
     }
 }

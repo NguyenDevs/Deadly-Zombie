@@ -1,47 +1,44 @@
 package com.NguyenDevs.deadlyZombie.Listener;
 
-import com.NguyenDevs.deadlyZombie.Manager.ConfigManager;
+import com.NguyenDevs.deadlyZombie.DeadlyZombie;
+import com.NguyenDevs.deadlyZombie.Feature.DeadlyFeature;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
-import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
-public class MobCriticalStrikeListener implements Listener {
-    private final ConfigManager configManager;
-    private static final Random RANDOM = new Random();
+public class MobCriticalStrikeListener extends DeadlyFeature {
 
-    public MobCriticalStrikeListener(ConfigManager configManager) {
-        this.configManager = configManager;
+    public MobCriticalStrikeListener(DeadlyZombie plugin) {
+        super(plugin, "critical-strike");
     }
-    private boolean isWorldDisabled(World world) {
-        return configManager.getConfig().getStringList("disable-worlds").contains(world.getName());
-    }
+
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerDamaged(EntityDamageByEntityEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
         if (!(event.getDamager() instanceof LivingEntity mob)) return;
-        if (isWorldDisabled(player.getWorld())) return;
+        if (!shouldRun(player.getWorld())) return;
 
-        var config = configManager.getConfig().getConfigurationSection("mob-critical-strikes");
-        if (config == null || !config.getBoolean("enabled", true)) return;
+        ConfigurationSection config = getFeatureConfig();
 
-        double chance = config.getDouble("crit-chance." + mob.getType().name(), 0.0) / 100.0;
-        if (RANDOM.nextDouble() > chance) return;
+        String path = "chance." + mob.getType().name();
+        if (!config.contains(path)) return;
 
-        // Play effects
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 2.0f, 1.0f);
-        player.getWorld().spawnParticle(Particle.CRIT, player.getLocation().add(0, 1, 0), 32, 0, 0, 0, 0.5);
-        player.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, player.getLocation().add(0, 1, 0), 0);
+        double chance = config.getDouble(path);
 
-        double multiplier = config.getDouble("damage-percent", 50.0) / 100.0;
-        event.setDamage(event.getDamage() * (1 + multiplier));
+        if (ThreadLocalRandom.current().nextDouble() * 100 < chance) {
+            player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 2.0f, 1.0f);
+            player.getWorld().spawnParticle(Particle.CRIT, player.getLocation().add(0, 1, 0), 32, 0, 0, 0, 0.5);
+            player.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, player.getLocation().add(0, 1, 0), 0);
+
+            double multiplier = config.getDouble("bonus-damage", 50.0) / 100.0;
+            event.setDamage(event.getDamage() * (1 + multiplier));
+        }
     }
 }
-

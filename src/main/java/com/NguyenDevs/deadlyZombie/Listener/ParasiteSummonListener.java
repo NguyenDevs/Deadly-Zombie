@@ -1,49 +1,43 @@
 package com.NguyenDevs.deadlyZombie.Listener;
 
-import com.NguyenDevs.deadlyZombie.Manager.ConfigManager;
+import com.NguyenDevs.deadlyZombie.DeadlyZombie;
+import com.NguyenDevs.deadlyZombie.Feature.DeadlyFeature;
 import org.bukkit.Particle;
-import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Zombie;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.util.Vector;
 
-import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
-public class ParasiteSummonListener implements Listener {
-    private final ConfigManager configManager;
-    private static final Random RANDOM = new Random();
+public class ParasiteSummonListener extends DeadlyFeature {
 
-    public ParasiteSummonListener(ConfigManager configManager) {
-        this.configManager = configManager;
+    public ParasiteSummonListener(DeadlyZombie plugin) {
+        super(plugin, "parasite");
     }
-    private boolean isWorldDisabled(World world) {
-        return configManager.getConfig().getStringList("disable-worlds").contains(world.getName());
-    }
+
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onZombieDeath(EntityDeathEvent event) {
         if (!(event.getEntity() instanceof Zombie zombie)) return;
-        if (isWorldDisabled(zombie.getWorld())) return;
+        if (!shouldRun(zombie.getWorld())) return;
         if (zombie.hasMetadata("NPC")) return;
 
-        var config = configManager.getConfig().getConfigurationSection("parasite-summon");
-        if (config == null || !config.getBoolean("enabled", true)) return;
+        ConfigurationSection config = getFeatureConfig();
+        double chance = config.getDouble("chance", 35.0);
 
-        double chance = config.getDouble("chance-percent", 10.0) / 100.0;
-        int min = config.getInt("min", 1);
-        int max = config.getInt("max", 3);
+        if (ThreadLocalRandom.current().nextDouble() * 100 < chance) {
+            int min = config.getInt("amount.min", 1);
+            int max = config.getInt("amount.max", 3);
+            int count = min + ThreadLocalRandom.current().nextInt(Math.max(1, max - min + 1));
 
-        if (RANDOM.nextDouble() > chance) return;
-
-        int count = min + RANDOM.nextInt(Math.max(1, max - min + 1));
-
-        for (int i = 0; i < count; i++) {
-            Vector velocity = new Vector(RANDOM.nextDouble() - 0.5, RANDOM.nextDouble() - 0.5, RANDOM.nextDouble() - 0.5);
-            zombie.getWorld().spawnParticle(Particle.SMOKE_LARGE, zombie.getLocation(), 0);
-            zombie.getWorld().spawnEntity(zombie.getLocation(), EntityType.SILVERFISH).setVelocity(velocity);
+            for (int i = 0; i < count; i++) {
+                Vector velocity = new Vector(ThreadLocalRandom.current().nextDouble() - 0.5, ThreadLocalRandom.current().nextDouble() - 0.5, ThreadLocalRandom.current().nextDouble() - 0.5);
+                zombie.getWorld().spawnParticle(Particle.SMOKE_LARGE, zombie.getLocation(), 0);
+                zombie.getWorld().spawnEntity(zombie.getLocation(), EntityType.SILVERFISH).setVelocity(velocity);
+            }
         }
     }
 }
