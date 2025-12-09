@@ -1,0 +1,6 @@
+prefix: "&7[&aDeadly&2Zombie&7] &r"
+
+admin:
+  reload-success: "&7Configurations reloaded successfully."
+  no-permission: "&cYou do not have permission to use this command."
+  usage: "&eUsage: /deadlyzombie reload"

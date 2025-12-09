@@ -2,7 +2,7 @@ package com.NguyenDevs.deadlyZombie.Listener;
 
 import com.NguyenDevs.deadlyZombie.DeadlyZombie;
 import com.NguyenDevs.deadlyZombie.Feature.DeadlyFeature;
-import org.bukkit.ChatColor;
+import com.NguyenDevs.deadlyZombie.Utils.MessageUtils;
 import org.bukkit.EntityEffect;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -42,13 +42,22 @@ public class ArmorPiercingListener extends DeadlyFeature {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOW)
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
         if (pendingDeathMessages.containsKey(player.getUniqueId())) {
             String killerName = pendingDeathMessages.remove(player.getUniqueId());
-            event.setDeathMessage(ChatColor.RED + player.getName() + " was pierced to death by " + killerName);
+
+            String rawMsg = "You are died";
+            String finalMsg = rawMsg
+                    .replace("%player%", player.getName())
+                    .replace("%killer%", killerName);
+
+            if (!pendingDeathMessages.containsKey(player.getUniqueId())) {
+                event.setDeathMessage(null);
+            }
         }
+
     }
 
     private void performTrueDamage(EntityDamageByEntityEvent event, Player player,
@@ -62,7 +71,9 @@ public class ArmorPiercingListener extends DeadlyFeature {
         double newHealth = currentHealth - rawDamage;
 
         if (newHealth <= 0) {
-            String mobName = damager.getCustomName() != null ? damager.getCustomName() : damager.getType().name();
+            String mobName = damager.getCustomName() != null
+                    ? damager.getCustomName()
+                    : formatMobName(damager.getType().name());
             pendingDeathMessages.put(player.getUniqueId(), mobName);
 
             player.setHealth(0);
@@ -91,5 +102,24 @@ public class ArmorPiercingListener extends DeadlyFeature {
     private double getRawDamage(LivingEntity mob) {
         var damageAttr = mob.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE);
         return damageAttr != null ? damageAttr.getValue() : 2.0;
+    }
+
+    /**
+     * Format mob name từ ZOMBIE → Zombie, SKELETON_HORSE → Skeleton Horse
+     */
+    private String formatMobName(String mobType) {
+        String[] words = mobType.toLowerCase().split("_");
+        StringBuilder formatted = new StringBuilder();
+
+        for (String word : words) {
+            if (formatted.length() > 0) {
+                formatted.append(" ");
+            }
+            // Viết hoa chữ cái đầu
+            formatted.append(Character.toUpperCase(word.charAt(0)))
+                    .append(word.substring(1));
+        }
+
+        return formatted.toString();
     }
 }

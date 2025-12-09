@@ -6,8 +6,8 @@ settings:
 
 difficulty-bonus:
   EASY: 0.0
-  NORMAL: 10.0
-  HARD: 20.0
+  NORMAL: 5.0
+  HARD: 10.0
 
 features:
   equipment:

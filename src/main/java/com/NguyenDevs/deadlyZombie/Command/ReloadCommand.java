@@ -1,6 +1,7 @@
 package com.NguyenDevs.deadlyZombie.Command;
 
 import com.NguyenDevs.deadlyZombie.Manager.ConfigManager;
+import com.NguyenDevs.deadlyZombie.Utils.MessageUtils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -17,15 +18,15 @@ public class ReloadCommand implements CommandExecutor {
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
             if (sender.hasPermission("zd.admin")) {
                 configManager.reloadConfigs();
-                sender.sendMessage("§8[§aDeadly§2Zombie§8] §7Configurations reloaded successfully.");
+                MessageUtils.send(sender, configManager, "admin.reload-success");
                 return true;
             } else {
-                sender.sendMessage("§8[§aDeadly§2Zombie§8] §cYou do not have permission to use this command.");
+                MessageUtils.send(sender, configManager, "admin.no-permission");
                 return true;
             }
         }
 
-        sender.sendMessage("§8[§aDeadly§2Zombie§8] §eUsage: /deadlyzombie reload");
+        MessageUtils.send(sender, configManager, "admin.usage");
         return true;
     }
 }
