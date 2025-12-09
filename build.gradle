@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'com.NguyenDevs'
-version = '1.0.2'
+version = '1.0.3'
 
 repositories {
     mavenCentral()
@@ -13,7 +13,6 @@ repositories {
         url = "https://hub.spigotmc.org/nexus/content/repositories/snapshots/"
     }
     maven {
-        name = "dmulloy2-repo"
         url = "https://repo.dmulloy2.net/repository/public/"
     }
     maven { url "https://maven.enginehub.org/repo/" }
@@ -24,7 +23,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly "com.comphenix.protocol:ProtocolLib:4.7.0"
+    compileOnly 'net.dmulloy2:ProtocolLib:5.4.0'
     compileOnly 'com.sk89q.worldguard:worldguard-bukkit:7.0.9'
     compileOnly("org.spigotmc:spigot-api:1.19.4-R0.1-SNAPSHOT")
 }

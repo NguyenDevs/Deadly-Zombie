@@ -27,6 +27,7 @@ public class ArmorPiercingListener implements Listener {
     private final ConfigManager configManager;
     private static final Random RANDOM = new Random();
 
+    // Map này dùng để chặn đệ quy (khi zombie đánh -> kích hoạt event -> plugin đánh -> kích hoạt event -> lặp vô tận)
     private final Map<UUID, Long> processingPlayers = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastEffectTime = new ConcurrentHashMap<>();
 
@@ -52,15 +53,10 @@ public class ArmorPiercingListener implements Listener {
         if (isWorldDisabled(player.getWorld())) return;
 
         UUID playerId = player.getUniqueId();
-        long currentTime = System.currentTimeMillis();
 
-        Long processingTime = processingPlayers.get(playerId);
-        if (processingTime != null) {
-            if (currentTime - processingTime < PROCESSING_TIMEOUT) {
-                return;
-            } else {
-                processingPlayers.remove(playerId);
-            }
+        // Kiểm tra nếu đang xử lý player này (do chính plugin gây sát thương) thì bỏ qua ngay
+        if (processingPlayers.containsKey(playerId)) {
+            return;
         }
 
         var config = configManager.getConfig().getConfigurationSection("armor-piercing");
@@ -69,84 +65,95 @@ public class ArmorPiercingListener implements Listener {
         double chance = config.getDouble("chance", 0.0) / 100.0;
         if (RANDOM.nextDouble() > chance) return;
 
-        processingPlayers.put(playerId, currentTime);
-
-        try {
-            bypassArmorAndDamage(event, player, mob, config);
-        } finally {
-            processingPlayers.remove(playerId);
-        }
+        // Gọi hàm xử lý
+        bypassArmorAndDamage(event, player, mob, config);
     }
 
     private void bypassArmorAndDamage(EntityDamageByEntityEvent event, Player player,
                                       LivingEntity damager, org.bukkit.configuration.ConfigurationSection config) {
 
-        double rawDamage = calculateRawMobDamage(damager);
+        // 1. Hủy sự kiện gốc NGAY LẬP TỨC để tránh Minecraft tính toán sát thương mặc định
         event.setCancelled(true);
 
-        PlayerInventory equipment = player.getInventory();
-        if (equipment == null) {
-            player.damage(rawDamage, damager);
-            return;
-        }
-
-        EquipmentSnapshot snapshot = new EquipmentSnapshot(equipment);
-
-        try {
-            equipment.setHelmet(null);
-            equipment.setChestplate(null);
-            equipment.setLeggings(null);
-            equipment.setBoots(null);
-
-            PotionEffect resistance = player.getPotionEffect(PotionEffectType.DAMAGE_RESISTANCE);
-            boolean hadResistance = resistance != null;
-            if (hadResistance) {
-                player.removePotionEffect(PotionEffectType.DAMAGE_RESISTANCE);
-            }
-
-            player.setNoDamageTicks(0);
-            player.damage(rawDamage, damager);
-
-            snapshot.restore(equipment);
-
-            if (hadResistance) {
-                player.addPotionEffect(resistance);
-            }
-
-            applyEffects(player, config);
-
-        } catch (Exception e) {
-            snapshot.restore(equipment);
-            e.printStackTrace();
-        }
-    }
-
-    private void applyEffects(Player player, org.bukkit.configuration.ConfigurationSection config) {
+        // Tính toán sát thương gốc
+        double rawDamage = calculateRawMobDamage(damager);
         UUID playerId = player.getUniqueId();
-        long currentTime = System.currentTimeMillis();
 
-        Long lastEffect = lastEffectTime.get(playerId);
-        if (lastEffect != null && currentTime - lastEffect < EFFECT_COOLDOWN) {
-            return;
-        }
-
-        lastEffectTime.put(playerId, currentTime);
-
+        // 2. Chuyển việc gây sát thương sang tick tiếp theo (Sync Task)
+        // Điều này giúp tách biệt hoàn toàn 2 sự kiện chết, sửa lỗi double message
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (player.isOnline()) {
-                    if (config.getBoolean("effects.particles", true)) {
-                        player.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR,
-                                player.getLocation().add(0, 1, 0), 5, 0.2, 0.3, 0.2, 0.1);
+                // Kiểm tra lại tính hợp lệ
+                if (!player.isOnline() || player.isDead() || !damager.isValid()) return;
+
+                // Đánh dấu đang xử lý để event mới sinh ra từ player.damage() bị chặn ở onPlayerDamaged
+                processingPlayers.put(playerId, System.currentTimeMillis());
+
+                PlayerInventory equipment = player.getInventory();
+                EquipmentSnapshot snapshot = null;
+
+                try {
+                    // Logic tháo giáp
+                    if (equipment != null) {
+                        snapshot = new EquipmentSnapshot(equipment);
+                        equipment.setHelmet(null);
+                        equipment.setChestplate(null);
+                        equipment.setLeggings(null);
+                        equipment.setBoots(null);
                     }
 
-                    if (config.getBoolean("effects.sound", true)) {
-                        player.playSound(player.getLocation(), Sound.ENTITY_ITEM_BREAK, 0.5f, 0.8f);
+                    // Xóa kháng cự
+                    PotionEffect resistance = player.getPotionEffect(PotionEffectType.DAMAGE_RESISTANCE);
+                    boolean hadResistance = resistance != null;
+                    if (hadResistance) {
+                        player.removePotionEffect(PotionEffectType.DAMAGE_RESISTANCE);
                     }
+
+                    // Gây sát thương (Lúc này event gốc đã hủy xong hoàn toàn)
+                    player.setNoDamageTicks(0);
+                    player.damage(rawDamage, damager);
+
+                    // Khôi phục giáp
+                    if (snapshot != null) {
+                        snapshot.restore(equipment);
+                    }
+
+                    // Khôi phục kháng cự
+                    if (hadResistance) {
+                        player.addPotionEffect(resistance);
+                    }
+
+                    // Hiệu ứng
+                    applyEffects(player, config);
+
+                } catch (Exception e) {
+                    // Fallback an toàn: cố gắng trả lại đồ nếu có lỗi
+                    if (snapshot != null && equipment != null) {
+                        snapshot.restore(equipment);
+                    }
+                    e.printStackTrace();
+                } finally {
+                    // Xóa đánh dấu xử lý
+                    processingPlayers.remove(playerId);
                 }
             }
-        }.runTaskLater(configManager.getPlugin(), 1L);
+        }.runTask(configManager.getPlugin());
+    }
+
+    private void applyEffects(Player player, org.bukkit.configuration.ConfigurationSection config) {
+        // ... (Giữ nguyên logic effect, không cần thay đổi vì nó chỉ là visual)
+        if (!player.isOnline()) return;
+
+        // Không cần check cooldown quá gắt gao ở đây vì logic chính đã chạy ở tick sau
+        if (config.getBoolean("effects.particles", true)) {
+            player.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR,
+                    player.getLocation().add(0, 1, 0), 5, 0.2, 0.3, 0.2, 0.1);
+        }
+
+        if (config.getBoolean("effects.sound", true)) {
+            player.playSound(player.getLocation(), Sound.ENTITY_ITEM_BREAK, 0.5f, 0.8f);
+        }
     }
 
     private void startAutoCleanup() {
@@ -154,7 +161,7 @@ public class ArmorPiercingListener implements Listener {
             @Override
             public void run() {
                 long currentTime = System.currentTimeMillis();
-
+                // Chỉ cần cleanup processingPlayers nếu có lỗi kẹt task (rất hiếm khi dùng try-finally)
                 processingPlayers.entrySet().removeIf(entry ->
                         currentTime - entry.getValue() > PROCESSING_TIMEOUT * 2);
 
@@ -167,11 +174,11 @@ public class ArmorPiercingListener implements Listener {
     private double calculateRawMobDamage(LivingEntity mob) {
         var damageAttr = mob.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE);
         double baseDamage = damageAttr != null ? damageAttr.getValue() : 1.0;
-
         return Math.min(Math.max(baseDamage, 0.5), 50.0);
     }
 
     private static class EquipmentSnapshot {
+        // ... (Giữ nguyên class này)
         private final ItemStack helmet;
         private final ItemStack chestplate;
         private final ItemStack leggings;
@@ -190,7 +197,6 @@ public class ArmorPiercingListener implements Listener {
 
         public void restore(PlayerInventory equipment) {
             if (equipment == null) return;
-
             try {
                 equipment.setHelmet(helmet);
                 equipment.setChestplate(chestplate);

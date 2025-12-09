@@ -10,7 +10,6 @@ public class WorldGuardOff implements WGPlugin {
         if (location == null) {
             throw new IllegalArgumentException("Location cannot be null");
         }
-        // Khi WorldGuard tắt, PvP được phép ở mọi nơi
         return true;
     }
 
@@ -19,8 +18,6 @@ public class WorldGuardOff implements WGPlugin {
         if (player == null) {
             throw new IllegalArgumentException("Player cannot be null");
         }
-        // Khi WorldGuard tắt, tất cả custom flags đều được phép
-        // Trả về true để cho phép zombie break blocks
         return true;
     }
 
@@ -29,8 +26,6 @@ public class WorldGuardOff implements WGPlugin {
         if (location == null) {
             throw new IllegalArgumentException("Location cannot be null");
         }
-        // Khi WorldGuard tắt, tất cả custom flags đều được phép tại mọi location
-        // Trả về true để cho phép zombie break blocks
         return true;
     }
 }
