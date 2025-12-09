@@ -27,12 +27,19 @@ import java.util.logging.Level;
 
 public class ZombieBreakBlockListener extends DeadlyFeature {
     private final Map<UUID, BukkitTask> activeBreakingTasks = new ConcurrentHashMap<>();
+
+    private final Map<UUID, Set<Location>> recentlyBrokenBlocks = new ConcurrentHashMap<>();
+    private final Map<UUID, Integer> breakAttempts = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> lastBreakTime = new ConcurrentHashMap<>();
+
     private final Map<UUID, UUID> persistentTargets = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastTargetTime = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastTargetSearchTime = new ConcurrentHashMap<>();
 
+    private static final long MEMORY_DURATION = 2000;
     private static final double MAX_TARGET_DISTANCE_SQUARED = 150.0 * 150.0;
     private static final long TARGET_SEARCH_COOLDOWN = 2000;
+    private static final Random RANDOM = new Random();
 
     public ZombieBreakBlockListener(DeadlyZombie plugin) {
         super(plugin, "break-block");
@@ -72,6 +79,13 @@ public class ZombieBreakBlockListener extends DeadlyFeature {
         new BukkitRunnable() {
             @Override
             public void run() {
+                cleanupOldMemories();
+            }
+        }.runTaskTimerAsynchronously(plugin, 200L, 200L);
+
+        new BukkitRunnable() {
+            @Override
+            public void run() {
                 maintainPersistentTargets();
             }
         }.runTaskTimer(plugin, 0L, 10L);
@@ -104,6 +118,9 @@ public class ZombieBreakBlockListener extends DeadlyFeature {
     public void cleanup() {
         activeBreakingTasks.values().forEach(BukkitTask::cancel);
         activeBreakingTasks.clear();
+        recentlyBrokenBlocks.clear();
+        breakAttempts.clear();
+        lastBreakTime.clear();
         persistentTargets.clear();
         lastTargetTime.clear();
         lastTargetSearchTime.clear();
@@ -286,7 +303,7 @@ public class ZombieBreakBlockListener extends DeadlyFeature {
         BukkitRunnable breakTask = new BukkitRunnable() {
             int ticksElapsed = 0;
             ProtocolManager protocolManager = ProtocolLibrary.getProtocolManager();
-            int entityId = ThreadLocalRandom.current().nextInt(Integer.MAX_VALUE);
+            int entityId = RANDOM.nextInt(Integer.MAX_VALUE);
             Location breakLocation = zombie.getLocation().clone();
 
             @Override
@@ -303,6 +320,7 @@ public class ZombieBreakBlockListener extends DeadlyFeature {
                     }
 
                     zombie.setTarget(null);
+
                     Location lookAt = block.getLocation().add(0.5, 0.5, 0.5);
                     Vector dir = lookAt.toVector().subtract(zombie.getEyeLocation().toVector());
                     Location newLoc = zombie.getLocation().setDirection(dir);
@@ -330,8 +348,12 @@ public class ZombieBreakBlockListener extends DeadlyFeature {
                     zombie.getWorld().spawnParticle(Particle.BLOCK_CRACK, block.getLocation().add(0.5, 0.5, 0.5), 50, 0.4, 0.4, 0.4, 0.1, block.getBlockData());
 
                     block.breakNaturally(tool);
+
+                    rememberBrokenBlock(zombieUUID, block);
+
                     zombie.setTarget(target);
                     cleanup();
+
                     Bukkit.getScheduler().runTask(plugin, () -> applyZombieBreakBlock(zombie));
 
                 } catch (Exception e) {
@@ -364,10 +386,25 @@ public class ZombieBreakBlockListener extends DeadlyFeature {
         activeBreakingTasks.put(zombieUUID, task);
     }
 
+    private void cleanupOldMemories() {
+        long now = System.currentTimeMillis();
+        lastBreakTime.entrySet().removeIf(entry -> {
+            if (now - entry.getValue() > MEMORY_DURATION) {
+                recentlyBrokenBlocks.remove(entry.getKey());
+                return true;
+            }
+            return false;
+        });
+        lastTargetSearchTime.entrySet().removeIf(entry -> now - entry.getValue() > TARGET_SEARCH_COOLDOWN * 10);
+    }
+
     private void cleanupZombieBreaking(Zombie zombie) {
         UUID uuid = zombie.getUniqueId();
         BukkitTask task = activeBreakingTasks.remove(uuid);
         if (task != null) task.cancel();
+        recentlyBrokenBlocks.remove(uuid);
+        breakAttempts.remove(uuid);
+        lastBreakTime.remove(uuid);
     }
 
     private boolean isValidTool(Material material) {
@@ -395,5 +432,16 @@ public class ZombieBreakBlockListener extends DeadlyFeature {
         else if (tool.name().contains("GOLDEN")) toolMultiplier = 12.0f;
         else if (tool.name().contains("NETHERITE")) toolMultiplier = 9.0f;
         return blockHardness * 1.5f / toolMultiplier * 20.0;
+    }
+
+    private void rememberBrokenBlock(UUID uuid, Block block) {
+        recentlyBrokenBlocks.computeIfAbsent(uuid, k -> ConcurrentHashMap.newKeySet()).add(block.getLocation());
+        lastBreakTime.put(uuid, System.currentTimeMillis());
+        breakAttempts.put(uuid, 0);
+    }
+
+    private boolean wasRecentlyBroken(UUID uuid, Block block) {
+        Set<Location> broken = recentlyBrokenBlocks.get(uuid);
+        return broken != null && broken.contains(block.getLocation());
     }
 }
