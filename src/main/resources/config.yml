@@ -20,6 +20,11 @@ features:
 
   break-block:
     enabled: true
+    max-target-distance: 150.0
+    # Whether blocks should drop items when broken by zombies
+    drop-blocks: true
+    # Time in seconds before dropped items are removed (0 = never remove)
+    drop-remove-interval: 30.0
 
   rage:
     enabled: true
