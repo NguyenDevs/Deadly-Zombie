@@ -9,6 +9,7 @@ import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.wrappers.BlockPosition;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -27,23 +28,26 @@ import java.util.logging.Level;
 
 public class ZombieBreakBlockListener extends DeadlyFeature {
     private final Map<UUID, BukkitTask> activeBreakingTasks = new ConcurrentHashMap<>();
-
     private final Map<UUID, Set<Location>> recentlyBrokenBlocks = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> breakAttempts = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastBreakTime = new ConcurrentHashMap<>();
-
+    private final Map<UUID, Set<UUID>> zombieDroppedItems = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> persistentTargets = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastTargetTime = new ConcurrentHashMap<>();
     private final Map<UUID, Long> lastTargetSearchTime = new ConcurrentHashMap<>();
 
     private static final long MEMORY_DURATION = 2000;
-    private static final double MAX_TARGET_DISTANCE_SQUARED = 150.0 * 150.0;
     private static final long TARGET_SEARCH_COOLDOWN = 2000;
     private static final Random RANDOM = new Random();
 
     public ZombieBreakBlockListener(DeadlyZombie plugin) {
         super(plugin, "break-block");
         startTasks();
+    }
+
+    private double getMaxTargetDistanceSquared() {
+        double dist = configManager.getBreakBlockConfig().getDouble("max-target-distance", 150.0);
+        return dist * dist;
     }
 
     private void startTasks() {
@@ -124,6 +128,7 @@ public class ZombieBreakBlockListener extends DeadlyFeature {
         persistentTargets.clear();
         lastTargetTime.clear();
         lastTargetSearchTime.clear();
+        zombieDroppedItems.clear();
     }
 
     @EventHandler
@@ -133,6 +138,7 @@ public class ZombieBreakBlockListener extends DeadlyFeature {
             persistentTargets.remove(zombie.getUniqueId());
             lastTargetTime.remove(zombie.getUniqueId());
             lastTargetSearchTime.remove(zombie.getUniqueId());
+            zombieDroppedItems.remove(zombie.getUniqueId());
         }
     }
 
@@ -144,6 +150,10 @@ public class ZombieBreakBlockListener extends DeadlyFeature {
         UUID zombieUUID = zombie.getUniqueId();
 
         if (event.getTarget() instanceof Player player) {
+            if (player.getGameMode() != GameMode.SURVIVAL && player.getGameMode() != GameMode.ADVENTURE) {
+                event.setCancelled(true);
+                return;
+            }
             persistentTargets.put(zombieUUID, player.getUniqueId());
             lastTargetTime.put(zombieUUID, System.currentTimeMillis());
         }
@@ -152,9 +162,13 @@ public class ZombieBreakBlockListener extends DeadlyFeature {
             UUID targetUUID = persistentTargets.get(zombieUUID);
             Player persistentPlayer = Bukkit.getPlayer(targetUUID);
             if (persistentPlayer != null && persistentPlayer.isOnline()) {
-                if (zombie.getWorld().equals(persistentPlayer.getWorld()) &&
-                        zombie.getLocation().distanceSquared(persistentPlayer.getLocation()) <= MAX_TARGET_DISTANCE_SQUARED) {
+                if (persistentPlayer.getGameMode() != GameMode.SURVIVAL && persistentPlayer.getGameMode() != GameMode.ADVENTURE) {
+                    persistentTargets.remove(zombieUUID);
+                    return;
+                }
 
+                if (zombie.getWorld().equals(persistentPlayer.getWorld()) &&
+                        zombie.getLocation().distanceSquared(persistentPlayer.getLocation()) <= getMaxTargetDistanceSquared()) {
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         if (zombie.isValid() && zombie.getTarget() == null) {
                             zombie.setTarget(persistentPlayer);
@@ -176,16 +190,22 @@ public class ZombieBreakBlockListener extends DeadlyFeature {
         }
 
         if (zombie.getTarget() instanceof Player) {
-            lastTargetSearchTime.put(zombieUUID, System.currentTimeMillis());
+            Player target = (Player) zombie.getTarget();
+            if (target.getGameMode() != GameMode.SURVIVAL && target.getGameMode() != GameMode.ADVENTURE) {
+                Bukkit.getScheduler().runTask(plugin, () -> zombie.setTarget(null));
+                persistentTargets.remove(zombieUUID);
+            } else {
+                lastTargetSearchTime.put(zombieUUID, System.currentTimeMillis());
+            }
             return;
         }
 
         Player closestPlayer = null;
-        double closestDistanceSq = MAX_TARGET_DISTANCE_SQUARED;
+        double closestDistanceSq = getMaxTargetDistanceSquared();
 
         Location zombieLoc = zombie.getLocation();
         for (Player player : zombie.getWorld().getPlayers()) {
-            if (player.getGameMode() == GameMode.SPECTATOR || player.getGameMode() == GameMode.CREATIVE) continue;
+            if (player.getGameMode() != GameMode.SURVIVAL && player.getGameMode() != GameMode.ADVENTURE) continue;
             if (!player.isOnline() || player.isDead()) continue;
             if (!shouldRun(player.getWorld())) continue;
 
@@ -218,12 +238,17 @@ public class ZombieBreakBlockListener extends DeadlyFeature {
             Player target = Bukkit.getPlayer(entry.getValue());
             if (target == null || !target.isOnline()) return true;
 
+            if (target.getGameMode() != GameMode.SURVIVAL && target.getGameMode() != GameMode.ADVENTURE) {
+                zombie.setTarget(null);
+                return true;
+            }
+
             if (!zombie.getWorld().equals(target.getWorld())) {
                 zombie.setTarget(null);
                 return true;
             }
 
-            if (zombie.getLocation().distanceSquared(target.getLocation()) > MAX_TARGET_DISTANCE_SQUARED) {
+            if (zombie.getLocation().distanceSquared(target.getLocation()) > getMaxTargetDistanceSquared()) {
                 zombie.setTarget(null);
                 return true;
             }
@@ -268,8 +293,10 @@ public class ZombieBreakBlockListener extends DeadlyFeature {
             Player persistentPlayer = Bukkit.getPlayer(persistentTargetUUID);
             if (persistentPlayer != null && persistentPlayer.isOnline() &&
                     zombie.getWorld().equals(persistentPlayer.getWorld()) &&
-                    zombie.getLocation().distanceSquared(persistentPlayer.getLocation()) <= MAX_TARGET_DISTANCE_SQUARED) {
-                return persistentPlayer;
+                    zombie.getLocation().distanceSquared(persistentPlayer.getLocation()) <= getMaxTargetDistanceSquared()) {
+                if (persistentPlayer.getGameMode() == GameMode.SURVIVAL || persistentPlayer.getGameMode() == GameMode.ADVENTURE) {
+                    return persistentPlayer;
+                }
             }
         }
         if (zombie.getTarget() instanceof Player) return (Player) zombie.getTarget();
@@ -279,22 +306,103 @@ public class ZombieBreakBlockListener extends DeadlyFeature {
 
     private Block selectBlockToBreak(Zombie zombie, LivingEntity target, Material toolType) {
         Location zombieEyeLoc = zombie.getEyeLocation();
-        Vector direction = target.getLocation().toVector().subtract(zombieEyeLoc.toVector()).normalize();
+        Location targetLoc = target.getLocation();
 
-        BlockIterator iterator = new BlockIterator(zombie.getWorld(), zombieEyeLoc.toVector(), direction, 0, 3);
-        while (iterator.hasNext()) {
-            Block block = iterator.next();
-            if (block.getType().isSolid() && canBreakBlock(toolType, block.getType())) return block;
-            if (!block.getType().isSolid()) {
-                Block blockBelow = block.getRelative(0, -1, 0);
-                if (blockBelow.getType().isSolid() && canBreakBlock(toolType, blockBelow.getType())) {
-                    if (target.getLocation().getY() < zombie.getLocation().getY()) return blockBelow;
+        // Check if target is above zombie - prioritize breaking blocks above
+        if (targetLoc.getY() > zombie.getLocation().getY() + 1.0) {
+            Vector direction = targetLoc.toVector().subtract(zombie.getLocation().toVector()).setY(0).normalize();
+            Block blockInFrontFeet = zombie.getLocation().add(direction).getBlock();
+
+            if (blockInFrontFeet.getType().isSolid()) {
+                Block blockInFrontHead = blockInFrontFeet.getRelative(BlockFace.UP);
+                Block blockInFrontAboveHead = blockInFrontHead.getRelative(BlockFace.UP);
+
+                if (blockInFrontHead.getType().isSolid() && canBreakBlock(toolType, blockInFrontHead.getType())) {
+                    return blockInFrontHead;
                 }
-                Block blockAbove = block.getRelative(0, 1, 0);
-                if (blockAbove.getType().isSolid() && canBreakBlock(toolType, blockAbove.getType())) return blockAbove;
+                if (blockInFrontAboveHead.getType().isSolid() && canBreakBlock(toolType, blockInFrontAboveHead.getType())) {
+                    return blockInFrontAboveHead;
+                }
+                return null;
             }
         }
+
+        Vector direction = targetLoc.toVector().subtract(zombieEyeLoc.toVector());
+
+        if (direction.lengthSquared() < 0.01) {
+            return null;
+        }
+
+        direction.normalize();
+
+        if (!isValidVector(direction)) {
+            return null;
+        }
+
+        if (!zombieEyeLoc.isWorldLoaded() || zombieEyeLoc.getWorld() == null) {
+            return null;
+        }
+
+        BlockIterator iterator;
+        try {
+            iterator = new BlockIterator(zombie.getWorld(), zombieEyeLoc.toVector(), direction, 0, 3);
+        } catch (IllegalStateException e) {
+            plugin.getLogger().warning("Failed to create BlockIterator for zombie " + zombie.getUniqueId() +
+                    " at " + zombieEyeLoc + " facing " + direction);
+            return null;
+        }
+
+        Block targetFloorBlock = targetLoc.getBlock().getRelative(BlockFace.DOWN);
+        Block zombieFloorBlock = zombie.getLocation().getBlock().getRelative(BlockFace.DOWN);
+
+        boolean sameLevel = Math.abs(zombie.getLocation().getY() - targetLoc.getY()) < 0.8;
+
+        while (iterator.hasNext()) {
+            Block block = iterator.next();
+
+            if (sameLevel) {
+                if (block.equals(targetFloorBlock) || block.equals(zombieFloorBlock)) {
+                    continue;
+                }
+                if (block.getY() < zombie.getLocation().getBlockY()) {
+                    continue;
+                }
+            }
+
+            if (block.getType().isSolid()) {
+                if (canBreakBlock(toolType, block.getType())) {
+                    if (block.equals(targetFloorBlock) || block.equals(zombieFloorBlock)) {
+                        continue;
+                    }
+                    return block;
+                } else {
+                    return null;
+                }
+            }
+
+            if (targetLoc.getY() < zombie.getLocation().getY() - 1.5) {
+                Block blockBelow = block.getRelative(BlockFace.DOWN);
+                if (!blockBelow.equals(targetFloorBlock) && !blockBelow.equals(zombieFloorBlock)) {
+                    if (blockBelow.getType().isSolid() && canBreakBlock(toolType, blockBelow.getType())) {
+                        return blockBelow;
+                    }
+                }
+            }
+        }
+
         return null;
+    }
+
+    private boolean isValidVector(Vector vec) {
+        if (vec == null) return false;
+        double x = vec.getX();
+        double y = vec.getY();
+        double z = vec.getZ();
+
+        if (Double.isNaN(x) || Double.isNaN(y) || Double.isNaN(z)) return false;
+        if (Double.isInfinite(x) || Double.isInfinite(y) || Double.isInfinite(z)) return false;
+
+        return vec.lengthSquared() > 0.0001;
     }
 
     private void startBreakingBlock(Zombie zombie, LivingEntity target, Block block, ItemStack tool, double breakTime) {
@@ -347,9 +455,48 @@ public class ZombieBreakBlockListener extends DeadlyFeature {
                     sendBreakAnimation(target, entityId, block, -1);
                     zombie.getWorld().spawnParticle(Particle.BLOCK_CRACK, block.getLocation().add(0.5, 0.5, 0.5), 50, 0.4, 0.4, 0.4, 0.1, block.getBlockData());
 
-                    block.breakNaturally(tool);
+                    boolean shouldDrop = configManager.getBreakBlockConfig().getBoolean("drop-blocks", true);
 
-                    rememberBrokenBlock(zombieUUID, block);
+                    if (shouldDrop) {
+                        Location dropLoc = block.getLocation().add(0.5, 0.5, 0.5);
+                        Set<UUID> existingItems = new HashSet<>();
+                        for (Entity entity : dropLoc.getWorld().getNearbyEntities(dropLoc, 1.5, 1.5, 1.5)) {
+                            if (entity instanceof Item) {
+                                existingItems.add(entity.getUniqueId());
+                            }
+                        }
+                        block.breakNaturally(tool);
+
+                        Set<UUID> newDroppedItems = new HashSet<>();
+                        for (Entity entity : dropLoc.getWorld().getNearbyEntities(dropLoc, 1.5, 1.5, 1.5)) {
+                            if (entity instanceof Item && !existingItems.contains(entity.getUniqueId())) {
+                                newDroppedItems.add(entity.getUniqueId());
+                            }
+                        }
+
+                        if (!newDroppedItems.isEmpty()) {
+                            zombieDroppedItems.computeIfAbsent(zombieUUID, k -> ConcurrentHashMap.newKeySet())
+                                    .addAll(newDroppedItems);
+                        }
+
+                        double removeInterval = configManager.getBreakBlockConfig().getDouble("drop-remove-interval", 0.0);
+                        if (removeInterval > 0 && !newDroppedItems.isEmpty()) {
+                            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                                Set<UUID> itemsToRemove = zombieDroppedItems.get(zombieUUID);
+                                if (itemsToRemove != null) {
+                                    for (UUID itemUUID : new HashSet<>(itemsToRemove)) {
+                                        Entity entity = Bukkit.getEntity(itemUUID);
+                                        if (entity instanceof Item && entity.isValid()) {
+                                            entity.remove();
+                                            itemsToRemove.remove(itemUUID);
+                                        }
+                                    }
+                                }
+                            }, (long) (removeInterval * 20L));
+                        }
+                    } else {
+                        block.setType(Material.AIR);
+                    }
 
                     zombie.setTarget(target);
                     cleanup();
@@ -405,14 +552,24 @@ public class ZombieBreakBlockListener extends DeadlyFeature {
         recentlyBrokenBlocks.remove(uuid);
         breakAttempts.remove(uuid);
         lastBreakTime.remove(uuid);
+        zombieDroppedItems.remove(uuid);
     }
 
     private boolean isValidTool(Material material) {
         return isPickaxe(material) || isShovel(material) || isAxe(material);
     }
-    private boolean isPickaxe(Material material) { return material.name().contains("PICKAXE"); }
-    private boolean isShovel(Material material) { return material.name().contains("SHOVEL"); }
-    private boolean isAxe(Material material) { return material.name().contains("_AXE"); }
+
+    private boolean isPickaxe(Material material) {
+        return material.name().contains("PICKAXE");
+    }
+
+    private boolean isShovel(Material material) {
+        return material.name().contains("SHOVEL");
+    }
+
+    private boolean isAxe(Material material) {
+        return material.name().contains("_AXE");
+    }
 
     private boolean canBreakBlock(Material tool, Material block) {
         if (block.getHardness() < 0) return false;
